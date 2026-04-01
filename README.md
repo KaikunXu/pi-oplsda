@@ -42,7 +42,7 @@ Running the visualizer as demonstrated in the notebooks will automatically gener
 
 The algorithmic foundation of `piopls` is deeply inspired by the excellent R package [`ropls`](https://bioconductor.org/packages/ropls/).
 
-> **Note:** Portions of this codebase, including code refactoring and documentation, were refined with the assistance of Gemini 3.1 Pro. All AI-assisted contributions have been strictly reviewed and tested by the human author to ensure scientific accuracy and code quality.
+> **Note:** Portions of this codebase, including code refactoring and documentation, were refined with the assistance of Gemini 3.1 Pro. All AI-assisted contributions have been strictly reviewed by the human author to ensure scientific accuracy and code quality.
 
 ## Contributing
 
