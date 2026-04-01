@@ -1,8 +1,8 @@
-# π-OPLS-DA (`piopls`)
+# π-OPLS-DA (`pi-oplsda`)
 
 > A high-performance, Pythonic implementation of Orthogonal Partial Least Squares Discriminant Analysis (OPLS-DA), tailored for metabolomics and bioinformatics.
 
-`piopls` bridges the gap between the rigorous algorithmic foundation of the gold-standard R package `ropls` and the modern Python data science ecosystem. It delivers blazing-fast parallel computing, native Pandas integration, and publication-ready visualizations—all in one lightweight package.
+`pi-oplsda` bridges the gap between the rigorous algorithmic foundation of the gold-standard R package `ropls` and the modern Python data science ecosystem. It delivers blazing-fast parallel computing, native Pandas integration, and publication-ready visualizations—all in one lightweight package.
 
 ##  Core Capabilities
 
@@ -17,7 +17,7 @@
 Install directly from GitHub using `pip`:
 
 ```bash
-pip install git+https://github.com/KaikunXu/piopls.git
+pip install git+https://github.com/KaikunXu/pi-oplsda.git
 ```
 
 ##  Quickstart & Tutorials
@@ -40,13 +40,13 @@ Running the visualizer as demonstrated in the notebooks will automatically gener
 
 ## Acknowledgements
 
-The algorithmic foundation of `piopls` is deeply inspired by the excellent R package [`ropls`](https://bioconductor.org/packages/ropls/).
+The algorithmic foundation of `pi-oplsda` is deeply inspired by the excellent R package [`ropls`](https://bioconductor.org/packages/ropls/).
 
 > **Note:** Portions of this codebase, including code refactoring and documentation, were refined with the assistance of Gemini 3.1 Pro. All AI-assisted contributions have been strictly reviewed by the human author to ensure scientific accuracy and code quality.
 
 ## Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/KaikunXu/piopls/issues).
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/KaikunXu/pi-oplsda/issues).
 
 ## License
 
