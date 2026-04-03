@@ -356,8 +356,8 @@ class OPLSDA_Visualizer:
             
         perms_r2y = perm_results.get('perms_R2Y', [])
         perms_q2 = perm_results.get('perms_Q2', [])
-        real_r2y = perm_results.get('R2Y_real', 0)
-        real_q2 = perm_results.get('Q2_real', 0)
+        real_r2y = perm_results.get('orig_R2Y', 0)
+        real_q2 = perm_results.get('orig_Q2', 0)
         
         if len(perms_r2y) > 0:
             arr_concat = np.concatenate([perms_r2y, perms_q2])

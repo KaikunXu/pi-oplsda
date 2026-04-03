@@ -16,4 +16,4 @@ __all__ = [
     "load_sacurine"
 ]
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"

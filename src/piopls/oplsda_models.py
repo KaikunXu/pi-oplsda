@@ -11,7 +11,7 @@ import pandas as pd
 import scipy.stats as stats
 from sklearn.preprocessing import LabelEncoder
 from joblib import Parallel, delayed
-from tqdm import tqdm
+from .utils import get_custom_progress
 
 
 class OPLSDA:
@@ -254,7 +254,8 @@ class OPLSDA:
             y_pred_idx = np.clip(
                 np.round(self.fitted_values_).astype(int), 0, n_classes - 1
             )
-            self.fitted_class_ = self.label_encoder.inverse_transform(y_pred_idx)
+            inv_trans = self.label_encoder.inverse_transform
+            self.fitted_class_ = inv_trans(y_pred_idx)
 
         # ---- Transform cumulative metrics into sequential increments ----
         self.R2X_comp_ = []
@@ -396,71 +397,100 @@ class OPLSDA:
         q2 = model_perm.compute_q2(X, y_perm)
         return model_perm.R2Y_, q2
 
-    def permutation_test(self, X, y, n_perms=None, n_jobs=None):
-        """Performs a permutation test to assess model significance.
-        
-        Falls back to class attributes n_perms and n_jobs if not specified.
+    def permutation_test(self, X, y, n_perms=100, n_jobs=-1):
+        """Perform a permutation test to assess model significance.
+
+        It randomly shuffles the target variable 'y' and re-fits the
+        model to calculate the permuted R2Y and Q2 values, strictly
+        aligning with the ropls algorithm.
 
         Args:
-            X (array-like): Feature matrix.
-            y (array-like): Target vector.
-            n_perms (int, optional): Number of permutations. Defaults to None.
-            n_jobs (int, optional): Cores for parallel jobs. Defaults to None.
+            X (pd.DataFrame, np.ndarray]): The feature matrix
+                of shape (n_samples, n_features).
+            y (pd.Series, np.ndarray): The target variable
+                (labels) of shape (n_samples,).
+            n_perms (int, optional): Number of permutations to
+                perform. Defaults to 100.
+            n_jobs (int, optional): Number of CPU cores to use. -1
+                means using all processors. Defaults to -1.
+
+        Raises:
+            ValueError: If all permutation iterations fail to converge.
 
         Returns:
-            dict: Dictionary containing real and permuted values of R2Y and Q2, 
-                and empirical p-values.
+            Dict: A dictionary containing original metrics,
+                permuted arrays, and empirical p-values.
+                - 'orig_R2Y' (float): Original R2Y value.
+                - 'orig_Q2' (float): Original Q2 value.
+                - 'perms_R2Y' (list of float): Permuted R2Y values.
+                - 'perms_Q2' (list of float): Permuted Q2 values.
+                - 'p_R2Y' (float): Empirical p-value for R2Y.
+                - 'p_Q2' (float): Empirical p-value for Q2.
+                - 'valid_perms' (int): Number of successful permutations.
         """
-        _perms = n_perms if n_perms is not None else self.n_perms
-        _jobs = n_jobs if n_jobs is not None else self.n_jobs
+        # 1. Data Validation & Formatting
+        X_mat = X.values if hasattr(X, 'values') else np.array(X)
+        y_arr = y.values if hasattr(y, 'values') else np.array(y)
         
-        if not hasattr(self, 'Q2_'):
-            self.compute_q2(X, y)
-            
-        real_R2Y, real_Q2 = self.R2Y_, self.Q2_
-        
-        if self._is_categorical:
-            y_num = self.label_encoder.transform(y).astype(float)
+        # Ensure y is numeric for the core NIPALS/PLS algorithm
+        if hasattr(self, '_encode_labels'):
+            y_numeric = self._encode_labels(y_arr)
         else:
-            y_num = np.asarray(y, dtype=float)
-            
-        tasks = (
-            delayed(self._single_permutation)(
-                X, y_num, self.n_ortho, self.cv_folds
-            )
-            for _ in range(_perms)
+            y_numeric = y_arr
+
+        print(
+            f"Starting parallel permutation test ({n_perms} permutations)..."
         )
+
+        # 2. Parallel Computation with Generator
+        current_n_ortho = getattr(self, 'n_ortho', 1) 
+        current_cv_folds = getattr(self, 'cv_folds', 7)
         
-        try:
-            results = list(tqdm(
-                Parallel(n_jobs=_jobs, return_as="generator")(tasks),
-                total=_perms, desc="Permutation Test", leave=True,
-                colour="#7F7F7F", bar_format="{l_bar}{bar:50}{r_bar}"
-            ))
-        except TypeError:
-            results = Parallel(n_jobs=_jobs)(
-                delayed(self._single_permutation)(
-                    X, y_num, self.n_ortho, self.cv_folds
-                )
-                for _ in tqdm(
-                    range(_perms), desc="Permutation Test", leave=True,
-                    colour="#7F7F7F", bar_format="{l_bar}{bar:50}{r_bar}"
-                )
-            )
-        
+        results_gen = Parallel(n_jobs=n_jobs, return_as='generator')(
+            delayed(self._single_permutation)(
+                X_mat, y_numeric, current_n_ortho, current_cv_folds)
+            for _ in range(n_perms)
+        )
+
+        # 3. Dynamic Progress Bar Integration
+        pbar = get_custom_progress(
+            results_gen, total=n_perms, desc="Permutation Test",
+            color = "#2CA02C", bar_length = 60
+        )
+        results = list(pbar)
+
+        # 4. Extract Permuted Metrics (Simplified, no defensive checks needed)
         perms_R2Y = [res[0] for res in results]
         perms_Q2 = [res[1] for res in results]
-            
-        p_R2Y = (np.sum(np.array(perms_R2Y) >= real_R2Y) + 1) / (_perms + 1)
-        p_Q2 = (np.sum(np.array(perms_Q2) >= real_Q2) + 1) / (_perms + 1)
-        
+
+        valid_perms = len(perms_R2Y)
+        if valid_perms == 0:
+            raise ValueError("All permutation iterations failed to converge.")
+
+        # 5. Retrieve Original Metrics
+        orig_R2Y = getattr(self, 'R2Y_', 0)
+        orig_Q2 = getattr(self, 'Q2_', 0)
+
+        # 6. Calculate Empirical P-Values
+        count_R2Y = sum(1 for val in perms_R2Y if val >= orig_R2Y)
+        count_Q2 = sum(1 for val in perms_Q2 if val >= orig_Q2)
+
+        p_R2Y = (count_R2Y + 1) / (valid_perms + 1)
+        p_Q2 = (count_Q2 + 1) / (valid_perms + 1)
+
+        # Save p-values to the class instance for downstream reporting
         self.p_R2Y_ = p_R2Y
         self.p_Q2_ = p_Q2
         
+        # 7. Return Structured Results for Visualization (OPLSDA_Visualizer)
         return {
-            'R2Y_real': real_R2Y, 'Q2_real': real_Q2,
-            'p_R2Y': p_R2Y, 'p_Q2': p_Q2,
-            'perms_R2Y': perms_R2Y, 'perms_Q2': perms_Q2
+            'orig_R2Y': orig_R2Y,
+            'orig_Q2': orig_Q2,
+            'perms_R2Y': perms_R2Y,
+            'perms_Q2': perms_Q2,
+            'p_R2Y': p_R2Y,
+            'p_Q2': p_Q2,
+            'valid_perms': valid_perms
         }
 
     # ==========================================
@@ -540,7 +570,6 @@ class OPLSDA:
             data[f't_ortho_{i+1}'] = self.T_ortho_[:, i]
             
         if y_true is not None: 
-            # Ensure array format for safe vectorized comparison
             data['True_Class'] = np.asarray(y_true)
             
         if hasattr(self, 'fitted_values_'):
@@ -550,7 +579,6 @@ class OPLSDA:
             
         df = pd.DataFrame(data)
         
-        # Evaluate consistency between predictions and true labels
         if 'True_Class' in df.columns and 'Fitted_Class' in df.columns:
             df['Match_Status'] = np.where(
                 df['True_Class'] == df['Fitted_Class'], 

@@ -8,7 +8,7 @@ dynamic = ["version", "readme"]
 authors = [
     { name="KaikunXu", email="xukaikun.bio@qq.com" },
 ]
-description = "A high-performance Python package for OPLS-DA, strictly aligned with the 'ropls' algorithm, featuring parallel permutation tests and publication-ready visualizations."
+description = "A high-performance and user-friendly Python package for OPLS-DA, strictly aligned with 'ropls'. Features parallel permutation tests with dynamic progress tracking, and publication-ready visualizations."
 requires-python = ">=3.9"
 license = {file = "LICENSE"}
 classifiers = [
@@ -25,9 +25,10 @@ dependencies = [
     "scipy>=1.7.0",
     "scikit-learn>=1.0.2",
     "joblib>=1.3.0",
-    "tqdm>=4.65.0",
     "matplotlib>=3.3.0",
     "seaborn>=0.11.0"
+    "tqdm>=4.65.0",
+    "rich>=13.0.0"
 ]
 
 [project.urls]
@@ -44,3 +45,8 @@ include = ["piopls*"]
 [tool.setuptools.dynamic]
 version = {attr = "piopls.__version__"}
 readme = {file = ["README.md"]}
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+]
