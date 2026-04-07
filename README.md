@@ -1,5 +1,9 @@
 # π-OPLS-DA (`pi-oplsda`)
 
+[![GitHub release](https://img.shields.io/github/v/release/KaikunXu/pi-oplsda)](https://github.com/KaikunXu/pi-oplsda/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+
 > A high-performance, Pythonic implementation of Orthogonal Partial Least Squares Discriminant Analysis (OPLS-DA), tailored for metabolomics and bioinformatics.
 
 `pi-oplsda` bridges the gap between the rigorous algorithmic foundation of the gold-standard R package `ropls` and the modern Python data science ecosystem. It delivers blazing-fast parallel computing, native Pandas integration, and publication-ready visualizations—all in one lightweight package.
