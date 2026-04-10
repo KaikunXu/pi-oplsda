@@ -51,8 +51,9 @@ Instead of static code snippets, please refer to our executable tutorials to get
 ##  Generated Diagnostic Plots
 
 <p align="center">
-  <img src="assets/pi-oplsda_demo_output.png" width="800" alt="pi-oplsda Dashboard">
+  <img src="assets/pi-oplsda_visualizer.png" width="1000" alt="pi-oplsda Dashboard">
 </p>
+
 
 Running the visualizer as demonstrated in the notebooks will automatically generate the following tightly integrated subplots:
 

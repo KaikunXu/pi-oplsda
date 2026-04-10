@@ -11,9 +11,9 @@ import pandas as pd
 import textwrap
 
 import matplotlib.pyplot as plt
-import seaborn as sns
 from matplotlib.patches import Ellipse, Patch
 from matplotlib.transforms import Affine2D
+import seaborn as sns
 
 
 class OPLSDA_Visualizer:
@@ -59,6 +59,20 @@ class OPLSDA_Visualizer:
             custom_palette (dict, optional): Custom color mapping for classes. 
                 Defaults to None.
         """
+        # ==========================================
+        # Global Matplotlib & Seaborn Configuration
+        # ==========================================
+        # Ensure high-quality vector export
+        plt.rcParams["pdf.fonttype"] = 42
+        plt.rcParams["ps.fonttype"] = 42
+        plt.rcParams["font.sans-serif"] = ["Arial", "Helvetica"]
+        
+        # Force white style to ensure background consistency
+        sns.set_style("ticks")
+        plt.rcParams["axes.facecolor"] = "white"
+        plt.rcParams["figure.facecolor"] = "white"
+        
+        # Data and Attribute Loading        
         self.model = model
         self.feature_names = feature_names
         self.sample_names = sample_names
@@ -166,12 +180,16 @@ class OPLSDA_Visualizer:
 
     def plot_all(
         self,
-        perm_results=None,
-        save_path=None, 
-        wrap_width=20,
-        figsize=(15, 10)
+        perm_results = None,
+        save_path = None,
+        wrap_width = 20,
+        figsize = (15, 10),
+        return_fig = False
     ):
-        """Generates and displays all 5 diagnostic plots in a single grid layout.
+        """Generates and displays diagnostic plots using patchworklib.
+
+        Combines the Model Overview, X-Score Plot, Permutation Test, S-Plot, 
+        and VIP Bar Plot using patchworklib for perfect coordinate alignment.
 
         Args:
             perm_results (dict, optional): Dictionary containing permutation 
@@ -182,56 +200,56 @@ class OPLSDA_Visualizer:
                 before wrapping. Defaults to 20.
             figsize (tuple, optional): Width, height in inches for the figure. 
                 Defaults to (15, 10).
+            return_fig (bool, optional): If True, returns the pw.Brick object. 
+                Defaults to False to prevent double-plotting in Jupyter Notebook
+                environments.
         """
-        # Dynamically calculate the width ratio for the 3rd column
-        # based on the wrapped label length to optimize spacing
-        try:
-            df_feat = self.model.get_features_df(
-                feature_names=self.feature_names
-            )
-            top_n = min(self.top_n_vip, len(df_feat))
-            df_top = df_feat.head(top_n)
-            
-            # Simulate text wrapping to find the actual max line length
-            wrapped_labels = df_top['Feature'].apply(
-                lambda x: textwrap.fill(str(x), width=wrap_width)
-            )
-            # Find the max length of any single line after splitting by '\n'
-            max_len = wrapped_labels.str.split('\n').explode().str.len().max()
-            col3_ratio = min(1.5 + (max_len * 0.015), 3.5)
-        except Exception:
-            col3_ratio = 2.5  # Safe fallback ratio
-            
-        fig = plt.figure(figsize=figsize)
-        # Keep col0 and col1 compact (ratio 1.2), and dynamically scale col3
-        gs = fig.add_gridspec(2, 3, width_ratios=[2, 2, col3_ratio])
+        import patchworklib as pw
         
-        ax_ov = fig.add_subplot(gs[0, 0])
-        ax_sc = fig.add_subplot(gs[0, 1])
-        ax_vp = fig.add_subplot(gs[0:, 2])
-        ax_pm = fig.add_subplot(gs[1, 0])
-        ax_sp = fig.add_subplot(gs[1, 1])
+        total_width,total_height = figsize
+        
+        # Calculate proportional widths
+        total_parts = 1 + 1 + 0.8
+        w_col1 = total_width * (1 / total_parts)
+        w_col2 = total_width * (1 / total_parts)
+        w_col3 = total_width * (0.8 / total_parts)
+        
+        # Calculate height for the 2x2 grid blocks (left side)
+        h_half = total_height / 2
+        
+        # Initialize pw.Brick objects with strictly assigned dimensions
+        ax_ov = pw.Brick(figsize=(w_col1, h_half))
+        ax_sc = pw.Brick(figsize=(w_col2, h_half))
+        ax_pm = pw.Brick(figsize=(w_col1, h_half))
+        ax_sp = pw.Brick(figsize=(w_col2, h_half))
+        ax_vp = pw.Brick(figsize=(w_col3, total_height))
 
+        # Render individual plots onto their respective bricks
         self.plot_model_overview(ax=ax_ov)
         self.plot_score(ax=ax_sc)
         self.plot_splot(ax=ax_sp)
-        # Pass the wrap_width to the bar plot
         self.plot_vip_bar(ax=ax_vp, wrap_width=wrap_width)
         
-        # Turn off permutation axis if no data provided
         if perm_results: 
             self.plot_permutations(perm_results, ax=ax_pm)
         else: 
             ax_pm.axis('off')
 
-        # Use a tight layout with compressed width padding
-        fig.tight_layout(pad=0.1, h_pad=3.0, w_pad=0.1)
+        # Construct the layout using patchworklib algebra
+        final_fig = ((ax_ov|ax_sc)/(ax_pm|ax_sp))|ax_vp
         
-        if save_path: 
-            plt.savefig(save_path, dpi=300, bbox_inches='tight')
-            
-        plt.show()
+        if save_path:
+            final_fig.savefig(save_path, dpi=300, bbox_inches='tight')
 
+        if not return_fig:
+            return None
+        
+        # Disconnect all active figures from the Matplotlib pyplot state
+        # to prevent Jupyter's inline backend from auto-displaying them.
+        # The 'final_fig' object retains memory references to render correctly.
+        plt.close('all')
+        
+        return final_fig
 
     def plot_model_overview(self, ax=None):
         """Plots a grouped bar chart showing R2Y and Q2 for each component.
@@ -464,7 +482,8 @@ class OPLSDA_Visualizer:
         df_top = df_feat.head(top_n).sort_values(by='VIP', ascending=True)
         
         # Wrap long feature names using textwrap
-        # break_long_words=True ensures continuous chemical names are broken properly
+        # break_long_words=True ensures continuous chemical names are broken 
+        # properly.
         df_top['Feature_Wrapped'] = df_top['Feature'].apply(
             lambda x: textwrap.fill(
                 str(x), width=wrap_width, break_long_words=True

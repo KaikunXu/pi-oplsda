@@ -8,7 +8,7 @@ dynamic = ["version", "readme"]
 authors = [
     { name="KaikunXu", email="xukaikun.bio@qq.com" },
 ]
-description = "A high-performance and user-friendly Python package for OPLS-DA, strictly aligned with 'ropls'. Features parallel permutation tests with dynamic progress tracking, and publication-ready visualizations."
+description = "A high-performance and user-friendly Python package for OPLS-DA, aligned with 'ropls'. Features parallel permutation tests with dynamic progress tracking, and publication-ready visualizations."
 requires-python = ">=3.9"
 license = {file = "LICENSE"}
 classifiers = [
@@ -28,7 +28,9 @@ dependencies = [
     "matplotlib>=3.3.0",
     "seaborn>=0.11.0"
     "tqdm>=4.65.0",
-    "rich>=13.0.0"
+    "rich>=13.0.0",
+    "patchworklib>=0.6.2",
+    "plotnine>=0.10.1"
 ]
 
 [project.urls]
