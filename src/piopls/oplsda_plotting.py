@@ -183,48 +183,55 @@ class OPLSDA_Visualizer:
         perm_results = None,
         save_path = None,
         wrap_width = 20,
-        figsize = (15, 10),
-        return_fig = False
+        figsize = (8.0, 6.0),
+        return_fig = False,
+        show_plot = False
     ):
         """Generates and displays diagnostic plots using patchworklib.
 
         Combines the Model Overview, X-Score Plot, Permutation Test, S-Plot, 
-        and VIP Bar Plot using patchworklib for perfect coordinate alignment.
+        and VIP Bar Plot. It supports file export, Jupyter integration, and 
+        standalone GUI blocking execution.
 
         Args:
-            perm_results (dict, optional): Dictionary containing permutation 
-                results to enable the permutation test subplot. Defaults to None.
-            save_path (str, optional): File path to save the generated figure. 
-                Defaults to None.
-            wrap_width (int, optional): Max character width for VIP y-labels 
-                before wrapping. Defaults to 20.
-            figsize (tuple, optional): Width, height in inches for the figure. 
-                Defaults to (15, 10).
-            return_fig (bool, optional): If True, returns the pw.Brick object. 
-                Defaults to False to prevent double-plotting in Jupyter Notebook
-                environments.
+            perm_results: Dictionary containing permutation test results.
+            save_path: File path to save the generated figure.
+            wrap_width: Maximum character width for VIP y-labels.
+            figsize: Width and height in inches for the total figure.
+            return_fig: If True, returns the pw.Brick object for Jupyter 
+                display. Defaults to False.
+            show_plot: If True, opens a blocking Matplotlib GUI window to 
+                display the plot in standalone Python scripts. Defaults to False.
+
+        Returns:
+            The final patchworklib figure object if return_fig is True.
+            Otherwise, returns None.
         """
+        import io
         import patchworklib as pw
+        import matplotlib as mpl
+        import matplotlib.pyplot as plt
+        import matplotlib.image as mpimg
         
-        total_width,total_height = figsize
+        mpl.rcParams['pdf.fonttype'] = 42
+        mpl.rcParams['ps.fonttype'] = 42
         
-        # Calculate proportional widths
-        total_parts = 1 + 1 + 0.8
-        w_col1 = total_width * (1 / total_parts)
-        w_col2 = total_width * (1 / total_parts)
-        w_col3 = total_width * (0.8 / total_parts)
+        total_width = figsize[0]
+        total_height = figsize[1]
         
-        # Calculate height for the 2x2 grid blocks (left side)
-        h_half = total_height / 2
+        total_parts = 1.5 + 1.5 + 2.0
+        w_col1 = total_width * (1.5 / total_parts)
+        w_col2 = total_width * (1.5 / total_parts)
+        w_col3 = total_width * (2.0 / total_parts)
         
-        # Initialize pw.Brick objects with strictly assigned dimensions
+        h_half = total_height / 2.0
+        
         ax_ov = pw.Brick(figsize=(w_col1, h_half))
         ax_sc = pw.Brick(figsize=(w_col2, h_half))
         ax_pm = pw.Brick(figsize=(w_col1, h_half))
         ax_sp = pw.Brick(figsize=(w_col2, h_half))
         ax_vp = pw.Brick(figsize=(w_col3, total_height))
 
-        # Render individual plots onto their respective bricks
         self.plot_model_overview(ax=ax_ov)
         self.plot_score(ax=ax_sc)
         self.plot_splot(ax=ax_sp)
@@ -235,20 +242,41 @@ class OPLSDA_Visualizer:
         else: 
             ax_pm.axis('off')
 
-        # Construct the layout using patchworklib algebra
-        final_fig = ((ax_ov|ax_sc)/(ax_pm|ax_sp))|ax_vp
+        row_top = ax_ov | ax_sc
+        row_bottom = ax_pm | ax_sp
+        fig_left = row_top / row_bottom
+        final_fig = fig_left | ax_vp
         
         if save_path:
             final_fig.savefig(save_path, dpi=300, bbox_inches='tight')
 
+        if show_plot:
+            # Render the patchworklib layout to an in-memory buffer
+            buf = io.BytesIO()
+            final_fig.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+            buf.seek(0)
+            
+            # Destroy the multiple implicit figures created by patchworklib
+            plt.close('all')
+            
+            # Create a single, clean Figure to display the unified buffer image
+            display_fig, display_ax = plt.subplots(figsize=figsize)
+            display_ax.imshow(mpimg.imread(buf, format='png'))
+            display_ax.axis('off')
+            plt.subplots_adjust(
+                top=1, bottom=0, right=1, left=0, hspace=0, wspace=0
+            )
+            
+            # Block script execution until the user closes this window
+            plt.show(block=True)
+            
         if not return_fig:
             return None
-        
-        # Disconnect all active figures from the Matplotlib pyplot state
-        # to prevent Jupyter's inline backend from auto-displaying them.
-        # The 'final_fig' object retains memory references to render correctly.
-        plt.close('all')
-        
+            
+        # Ensure cleanup occurs if returning the object without showing it
+        if not show_plot:
+            plt.close('all')
+            
         return final_fig
 
     def plot_model_overview(self, ax=None):

@@ -44,8 +44,8 @@ def main():
     print("\n--- Step-wise Summary ---")
     print(model_opls.get_summary_df().to_string(index=False))
 
-    # 4. Generate and save diagnostic visualizations
-    print("\n[4/4] Generating publication-ready visualizations...")
+    # 4. Generate and display diagnostic visualizations
+    print("\n[4/4] Generating visualizations and opening viewer...")
     vis_opls = OPLSDA_Visualizer(
         model=model_opls, 
         y=y, 
@@ -55,10 +55,15 @@ def main():
         top_n_vip=15
     )
 
-    # Render the comprehensive plot, and save the figure as a high-resolution 
-    # image (safest approach for terminal)
-    output_filename = "pi-oplsda_terminal_output.png"
-    vis_opls.plot_all(perm_results=perm_results,save_path=None)
+    # Trigger the blocking GUI window
+    vis_opls.plot_all(
+        perm_results=perm_results, 
+        wrap_width=40,
+        figsize=(8, 6),
+        return_fig=False,
+        show_plot=True,
+        save_path=None
+    )
     
     print(f"\n[SUCCESS] Pipeline completed!")
     print("=" * 50)
