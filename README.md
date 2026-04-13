@@ -79,7 +79,7 @@ Running the `OPLSDA_Visualizer` will automatically generate a suite of tightly i
 + **S-Plot (Optional):** Highlights potential biomarkers based on the interplay between covariance (magnitude) and correlation (reliability). *(Note: This plot is available exclusively for binary classification models, as demonstrated in the Quickstart Tutorial).*
 
 <p align="center">
-  <img src="assets/pi_oplsda_benchmark.png" width="800" alt="pi-oplsda Dashboard">
+  <img src="assets/pi_oplsda_benchmark.png" width="800" alt="pi-oplsda Benchmark">
 </p>
 
 Cross-platform benchmarking demonstrates that `pi-oplsda` produces numerically identical results across all key OPLS-DA metrics. This evaluation utilizes the classic clinical metabolomics standard dataset, **Sacurine** (183 urine samples, 109 positive-ion mode features). To ensure a rigorous, one-to-one comparison of the underlying computational results, the testing process directly invokes the R engine via the `rpy2` interface. Model parameters were strictly aligned between platforms, fixing the predictive component to 1, optimizing orthogonal components  (n=3), and employing 7-fold cross-validation.
