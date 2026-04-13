@@ -6,7 +6,7 @@
 
 `pi-oplsda` bridges the gap between the rigorous algorithmic foundation of the gold-standard R package `ropls` and the modern Python data science ecosystem. It delivers blazing-fast parallel computing, native Pandas integration, and publication-ready visualizations—all in one lightweight package.
 
-##  ✨ Core Capabilities
+## ✨ Core Capabilities
 
 + **Standardized Rigor:** Perfectly replicates `ropls` step-wise variance increments ($R^2X$, $R^2Y$, $Q^2$) and NIPALS-based orthogonal signal correction (OSC).
 + **Pandas Native:** Seamlessly feed `pandas.DataFrame` into the model. Sample IDs and feature names are automatically tracked, eliminating the need for tedious matrix index management.
@@ -16,7 +16,7 @@
 
 > **Note:** Due to the nature of eigen-decomposition, the signs of scores and loadings may be flipped between platforms. This is mathematically equivalent and does not affect biological interpretation.
 
-##  📦 Installation
+## 📦 Installation
 You can install `pi-oplsda` using either of the following methods, depending on whether you simply want to use the package or if you plan to modify the source code.
 
 Option 1: Install directly from pypi or GitHub (Recommended for most users)
@@ -44,7 +44,7 @@ cd pi-oplsda
 pip install -e .
 ```
 
-##  🚀 Quickstart & Tutorials
+## 🚀 Quickstart & Tutorials
 
 We provide interactive Jupyter Notebooks that walk you through the entire OPLS-DA workflow and our rigorous validation process:
 
@@ -64,7 +64,7 @@ Running the `OPLSDA_Visualizer` will automatically generate a suite of tightly i
 
 ![pi-oplsda_visualizer](https://raw.githubusercontent.com/KaikunXu/pi-oplsda/main/assets/pi-oplsda_visualizer.png)
 
-##  🎯 Mathematical Equivalence & Benchmarking
+## 🎯 Mathematical Equivalence & Benchmarking
 
 `pi-oplsda` is strictly validated against the gold-standard R package `ropls` (Bioconductor) to ensure scientific integrity. Our cross-platform benchmarking demonstrates that `pi-oplsda` produces numerically identical results across all key OPLS-DA metrics.
 

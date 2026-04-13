@@ -9,14 +9,18 @@ authors = [
     { name="KaikunXu", email="xukaikun.bio@qq.com" },
 ]
 keywords = [
-    "biology",
     "chemistry",
-    "metabolomics", 
-    "bioinformatics", 
-    "lc-ms", 
+    "metabolomics",
+    "bioinformatics",
+    "chemometrics",
+    "lc-ms",
     "mass-spectrometry",
     "data-analysis",
-    "statistics"
+    "statistics",
+    "opls",
+    "opls-da",
+    "multivariate analysis",
+    "machine learning"
 ]
 description = "A high-performance and user-friendly Python package for OPLS-DA, aligned with 'ropls'. Features parallel permutation tests with dynamic progress tracking, and publication-ready visualizations."
 requires-python = ">=3.9"
