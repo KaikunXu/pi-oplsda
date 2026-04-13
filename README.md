@@ -1,10 +1,8 @@
 # π-OPLS-DA (`pi-oplsda`)
 
-[![GitHub release](https://img.shields.io/github/v/release/KaikunXu/pi-oplsda)](https://github.com/KaikunXu/pi-oplsda/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-
-> A high-performance, Pythonic implementation of Orthogonal Partial Least Squares Discriminant Analysis (OPLS-DA), tailored for metabolomics and bioinformatics.
+[![PyPI version](https://img.shields.io/pypi/v/pi-oplsda.svg)](https://pypi.org/project/pi-oplsda/)
+[![License](https://img.shields.io/github/license/KaikunXu/pi-oplsda)](https://github.com/KaikunXu/pi-oplsda/blob/main/LICENSE)
+[![Python Version](https://img.shields.io/pypi/pyversions/pi-oplsda.svg)](https://pypi.org/project/pi-oplsda/)
 
 `pi-oplsda` bridges the gap between the rigorous algorithmic foundation of the gold-standard R package `ropls` and the modern Python data science ecosystem. It delivers blazing-fast parallel computing, native Pandas integration, and publication-ready visualizations—all in one lightweight package.
 
@@ -21,9 +19,13 @@
 ##  📦 Installation
 You can install `pi-oplsda` using either of the following methods, depending on whether you simply want to use the package or if you plan to modify the source code.
 
-Option 1: Install directly from GitHub (Recommended for most users)
+Option 1: Install directly from pypi or GitHub (Recommended for most users)
 
 ```bash
+# Install module from The Python Package Index (PyPI)
+pip install pi-oplsda
+
+# Or you can choose install module from GitHub
 pip install git+https://github.com/KaikunXu/pi-oplsda.git
 ```
 
@@ -43,10 +45,11 @@ pip install -e .
 ```
 
 ##  🚀 Quickstart & Tutorials
+
 We provide interactive Jupyter Notebooks that walk you through the entire OPLS-DA workflow and our rigorous validation process:
 
-* **[Quickstart Tutorial](examples/quickstart_en.ipynb)**: A comprehensive guide from data loading to visualization and prediction.
-* **[R-ropls Equivalence Benchmark](examples/benchmark.ipynb)**: The complete script used to prove numerical consistency between Python and R implementations.
+* **[Quickstart Tutorial](https://github.com/KaikunXu/pi-oplsda/blob/main/examples/quickstart.ipynb)**: A comprehensive guide from data loading to visualization and prediction.
+* **[R-ropls Equivalence Benchmark](https://github.com/KaikunXu/pi-oplsda/blob/main/examples/benchmark.ipynb)**: The complete script used to prove numerical consistency between Python and R implementations.
 
 ## 📈 Visualization
 
@@ -59,7 +62,7 @@ Running the `OPLSDA_Visualizer` will automatically generate a suite of tightly i
 + **VIP Bar Plot:** Ranks the top features contributing to group separation. It features **automatic text wrapping** for excessively long metabolite names on the Y-axis to ensure clean, publication-ready layouts.
 + **S-Plot (Optional):** Highlights potential biomarkers based on the interplay between covariance (magnitude) and correlation (reliability). *(Note: This plot is available exclusively for binary classification models, as demonstrated in the Quickstart Tutorial).*
 
-!["pi-oplsda_visualizer"](https://github.com/KaikunXu/pi-oplsda/blob/main/assets/pi-oplsda_visualizer.png)
+![pi-oplsda_visualizer](https://raw.githubusercontent.com/KaikunXu/pi-oplsda/main/assets/pi-oplsda_visualizer.png)
 
 ##  🎯 Mathematical Equivalence & Benchmarking
 
@@ -82,7 +85,7 @@ In the visualizations below, the solid red scatter points map the values generat
 * **Orthogonal Latent Space (Top-Right):** Displays the correlation of the orthogonal score vectors (e.g., $t_{o1}, t_{o2}$). This confirms that both models possess identical geometric capabilities in extracting and filtering intra-class structured noise.
 * **Feature Importance & Predictive Space (Bottom Row):** Illustrates the three critical vectors driving the discriminatory power of OPLS-DA: **VIP Scores** (determining biomarker ranking), **Predictive Scores** $t_1$ (driving sample clustering), and **Predictive Loadings** $p_1$ (determining feature weights). The diagonal alignment confirms absolute accuracy in microscopic sample profiling and feature extraction.
 
-!["pi_oplsda_benchmark.png"](https://github.com/KaikunXu/pi-oplsda/blob/main/assets/pi_oplsda_benchmark.png)
+![pi_oplsda_benchmark.png](https://raw.githubusercontent.com/KaikunXu/pi-oplsda/main/assets/pi_oplsda_benchmark.png)
 
 ## 🤝 Acknowledgements
 

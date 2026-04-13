@@ -1,4 +1,4 @@
-# tests/test_ropls_equivalence.py
+# tests/test_ropls_benchmark.py
 import os
 import sys
 import subprocess
@@ -11,7 +11,7 @@ import piopls
 from piopls import OPLSDA, load_sacurine
 
 
-def test_ropls_equivalence():
+def test_ropls_benchmark():
     """Validates pi-oplsda metrics against R ropls package via rpy2."""
 
     # =========================================================================

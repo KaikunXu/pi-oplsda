@@ -8,6 +8,16 @@ dynamic = ["version", "readme"]
 authors = [
     { name="KaikunXu", email="xukaikun.bio@qq.com" },
 ]
+keywords = [
+    "biology",
+    "chemistry",
+    "metabolomics", 
+    "bioinformatics", 
+    "lc-ms", 
+    "mass-spectrometry",
+    "data-analysis",
+    "statistics"
+]
 description = "A high-performance and user-friendly Python package for OPLS-DA, aligned with 'ropls'. Features parallel permutation tests with dynamic progress tracking, and publication-ready visualizations."
 requires-python = ">=3.9"
 license = {file = "LICENSE"}
@@ -17,7 +27,9 @@ classifiers = [
     "Operating System :: OS Independent",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
-    "Topic :: Scientific/Engineering :: Metabolomics"
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Scientific/Engineering :: Medical Science Apps."
 ]
 dependencies = [
     "numpy>=1.21.0",
@@ -46,7 +58,7 @@ include = ["piopls*"]
 
 [tool.setuptools.dynamic]
 version = {attr = "piopls.__version__"}
-readme = {file = ["README.md"]}
+readme = {file = "README.md", content-type = "text/markdown"}
 
 [project.optional-dependencies]
 test = [
