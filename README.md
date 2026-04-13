@@ -16,20 +16,6 @@
 + **Publication-Ready Graphics:** Built on `matplotlib` and `seaborn` to generate clean, high-resolution diagnostic plots with smart legend placement. 
 + **Structured Export:** Extract model parameters, sample scores, and biomarker statistics (VIP, Covariance, Correlation) as instantly usable DataFrames for downstream pipelines.
 
-##  🎯 Mathematical Equivalence & Benchmarking
-
-`pi-oplsda` is strictly validated against the gold-standard R package `ropls` (Bioconductor) to ensure scientific integrity. Our cross-platform benchmarking demonstrates that `pi-oplsda` produces numerically identical results across all key OPLS-DA metrics.
-
-Using the **Sacurine** human urine dataset (183 samples, 109 metabolites), we compared the Python and R implementations:
-
-| Metric | Description | Comparison |
-| :--- | :--- | :--- |
-| **Global Quality** | Cumulative $R^2X$, $R^2Y$, and $Q^2$ | **Approximately equal** |
-| **Error Assessment** | Root Mean Square Error of Estimation (RMSEE) | **Approximately equal** |
-| **Latent Space** | Predictive Scores ($t_1$, $to_{n}$) and Loadings ($p_1$) | **Pearson's r > 0.999** |
-| **Variable Importance** | Variable Importance in Projection (VIP) scores | **Pearson's r > 0.999** |
-
-
 > **Note:** Due to the nature of eigen-decomposition, the signs of scores and loadings may be flipped between platforms. This is mathematically equivalent and does not affect biological interpretation.
 
 ##  📦 Installation
@@ -60,14 +46,11 @@ pip install -e .
 We provide interactive Jupyter Notebooks that walk you through the entire OPLS-DA workflow and our rigorous validation process:
 
 * **[Quickstart Tutorial](examples/quickstart_en.ipynb)**: A comprehensive guide from data loading to visualization and prediction.
-<<<<<<< Updated upstream
 * **[R-ropls Equivalence Benchmark](examples/benchmark.ipynb)**: The complete script used to prove numerical consistency between Python and R implementations.
 
-
 ## 📈 Visualization
-<p align="center">
-  <img src="assets/pi-oplsda_visualizer.png" width="800" alt="pi-oplsda Dashboard">
-</p>
+
+!["pi-oplsda_visualizer"](https://github.com/KaikunXu/pi-oplsda/blob/main/assets/pi-oplsda_visualizer.png)
 
 Running the `OPLSDA_Visualizer` will automatically generate a suite of tightly integrated diagnostic subplots to evaluate your model from multiple dimensions:
 
@@ -78,9 +61,20 @@ Running the `OPLSDA_Visualizer` will automatically generate a suite of tightly i
 + **VIP Bar Plot:** Ranks the top features contributing to group separation. It features **automatic text wrapping** for excessively long metabolite names on the Y-axis to ensure clean, publication-ready layouts.
 + **S-Plot (Optional):** Highlights potential biomarkers based on the interplay between covariance (magnitude) and correlation (reliability). *(Note: This plot is available exclusively for binary classification models, as demonstrated in the Quickstart Tutorial).*
 
-<p align="center">
-  <img src="assets/pi_oplsda_benchmark.png" width="800" alt="pi-oplsda Benchmark">
-</p>
+##  🎯 Mathematical Equivalence & Benchmarking
+
+`pi-oplsda` is strictly validated against the gold-standard R package `ropls` (Bioconductor) to ensure scientific integrity. Our cross-platform benchmarking demonstrates that `pi-oplsda` produces numerically identical results across all key OPLS-DA metrics.
+
+Using the **Sacurine** human urine dataset (183 samples, 109 metabolites), we compared the Python and R implementations:
+
+| Metric | Description | Comparison |
+| :--- | :--- | :--- |
+| **Global Quality** | Cumulative $R^2X$, $R^2Y$, and $Q^2$ | **Approximately equal** |
+| **Error Assessment** | Root Mean Square Error of Estimation (RMSEE) | **Approximately equal** |
+| **Latent Space** | Predictive Scores ($t_1$, $to_{n}$) and Loadings ($p_1$) | **Pearson's r > 0.999** |
+| **Variable Importance** | Variable Importance in Projection (VIP) scores | **Pearson's r > 0.999** |
+
+!["pi_oplsda_benchmark.png"](https://github.com/KaikunXu/pi-oplsda/blob/main/assets/pi_oplsda_benchmark.png)
 
 Cross-platform benchmarking demonstrates that `pi-oplsda` produces numerically identical results across all key OPLS-DA metrics. To ensure a rigorous, one-to-one comparison of the underlying computational results, the testing process directly invokes the R engine via the `rpy2` interface. Model parameters were strictly aligned between platforms, fixing the predictive component to 1, optimizing orthogonal components  (n=3), and employing 7-fold cross-validation.
 
