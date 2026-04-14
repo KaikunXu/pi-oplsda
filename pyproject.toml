@@ -67,5 +67,6 @@ readme = {file = "README.md", content-type = "text/markdown"}
 [project.optional-dependencies]
 test = [
     "pytest>=7.0.0",
-    "tabulate>=0.10.0"
+    "tabulate>=0.10.0",
+    "rpy2>=3.5.0"
 ]

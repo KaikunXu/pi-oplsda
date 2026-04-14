@@ -1,8 +1,8 @@
-# π-OPLS-DA (`pi-oplsda`)
+# `pi-oplsda`: π-OPLS-DA
 
-[![PyPI version](https://img.shields.io/pypi/v/pi-oplsda.svg)](https://pypi.org/project/pi-oplsda/)
-[![License](https://img.shields.io/github/license/KaikunXu/pi-oplsda)](https://github.com/KaikunXu/pi-oplsda/blob/main/LICENSE)
-[![Python Version](https://img.shields.io/pypi/pyversions/pi-oplsda.svg)](https://pypi.org/project/pi-oplsda/)
+[![PyPI version](https://badgen.net/pypi/v/pi-oplsda)](https://pypi.org/project/pi-oplsda/)
+[![License](https://badgen.net/github/license/KaikunXu/pi-oplsda)](https://github.com/KaikunXu/pi-oplsda/blob/main/LICENSE)
+[![Python Version](https://badgen.net/pypi/python/pi-oplsda)](https://pypi.org/project/pi-oplsda/)
 
 `pi-oplsda` bridges the gap between the rigorous algorithmic foundation of the gold-standard R package `ropls` and the modern Python data science ecosystem. It delivers blazing-fast parallel computing, native Pandas integration, and publication-ready visualizations—all in one lightweight package.
 
