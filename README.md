@@ -1,102 +1,167 @@
-# `pi-oplsda`: π-OPLS-DA
+# `pi-oplsda`: pi-OPLS-DA
 
 [![PyPI version](https://badgen.net/pypi/v/pi-oplsda)](https://pypi.org/project/pi-oplsda/)
 [![License](https://badgen.net/github/license/KaikunXu/pi-oplsda)](https://github.com/KaikunXu/pi-oplsda/blob/main/LICENSE)
 [![Python Version](https://badgen.net/pypi/python/pi-oplsda)](https://pypi.org/project/pi-oplsda/)
 
-`pi-oplsda` bridges the gap between the rigorous algorithmic foundation of the gold-standard R package `ropls` and the modern Python data science ecosystem. It delivers blazing-fast parallel computing, native Pandas integration, and publication-ready visualizations—all in one lightweight package.
+`pi-oplsda` bridges the rigorous algorithmic foundation of the R package `ropls` with the modern Python data science ecosystem. It provides native Pandas support, parallel permutation testing, scikit-learn style estimator methods, ropls-compatible statistical reporting, and publication-ready visualizations in one lightweight package.
 
-## ✨ Core Capabilities
+## Core Capabilities
 
-+ **Standardized Rigor:** Perfectly replicates `ropls` step-wise variance increments ($R^2X$, $R^2Y$, $Q^2$) and NIPALS-based orthogonal signal correction (OSC).
-+ **Pandas Native:** Seamlessly feed `pandas.DataFrame` into the model. Sample IDs and feature names are automatically tracked, eliminating the need for tedious matrix index management.
-+ **Multi-Core Acceleration:** Powered by `joblib`, permutation tests are fully parallelized.
-+ **Publication-Ready Graphics:** Built on `matplotlib` and `seaborn` to generate clean, high-resolution diagnostic plots with smart legend placement. 
-+ **Structured Export:** Extract model parameters, sample scores, and biomarker statistics (VIP, Covariance, Correlation) as instantly usable DataFrames for downstream pipelines.
+- **ropls-compatible computation:** Reproduces ropls-style OPLS-DA summaries, including cumulative $R^2X$, $R^2Y$, $Q^2$, RMSEE, VIP scores, predictive scores/loadings, and orthogonal scores.
+- **Automatic orthogonal component selection:** Set `n_ortho="auto"` to select the number of orthogonal components with ropls-style rules.
+- **Two compatibility modes:** Use `compatibility="ropls"` for R comparison and visualization consistency, or `compatibility="sklearn"` for fold-local preprocessing and modern Python ML conventions.
+- **Scikit-learn style API:** `fit`, `predict`, `decision_function`, `transform`, `fit_transform`, and `score` are available on `OPLSDA`.
+- **Pandas native:** `pandas.DataFrame` inputs preserve sample IDs and feature names in exported result tables.
+- **Multi-core acceleration:** Permutation tests are parallelized with `joblib` and reported with `tqdm`.
+- **Publication-ready graphics:** `OPLSDA_Visualizer` generates diagnostic plots for model summary, scores, outliers, permutation tests, VIP rankings, and S-plot style feature statistics.
+- **Structured export:** Model metadata, component summaries, sample scores, and feature statistics are available as DataFrames.
 
-> **Note:** Due to the nature of eigen-decomposition, the signs of scores and loadings may be flipped between platforms. This is mathematically equivalent and does not affect biological interpretation.
+> **Note:** Due to the nature of latent-variable models, scores and loadings may be flipped in sign between platforms. This is mathematically equivalent and does not affect interpretation.
 
-## 📦 Installation
-You can install `pi-oplsda` using either of the following methods, depending on whether you simply want to use the package or if you plan to modify the source code.
+## Installation
 
-Option 1: Install directly from pypi or GitHub (Recommended for most users)
+Install from PyPI:
 
 ```bash
-# Install module from The Python Package Index (PyPI)
 pip install pi-oplsda
+```
 
-# Or you can choose install module from GitHub
+Install from GitHub:
+
+```bash
 pip install git+https://github.com/KaikunXu/pi-oplsda.git
 ```
 
-Option 2: Install from source (For developers)
-
-If you want to contribute to the project, modify the algorithm, or explore the source code, you can clone the repository and install it in "editable" mode. This means any changes you make to the local code will immediately take effect without needing to reinstall the package.
+Install from source for development:
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/KaikunXu/pi-oplsda.git
-
-# 2. Navigate into the project directory
 cd pi-oplsda
-
-# 3. Install in editable mode
-pip install -e .
+pip install -e ".[dev]"
 ```
 
-## 🚀 Quickstart & Tutorials
+For benchmark/testing against R `ropls`, install the Python-side optional dependencies:
 
-We provide interactive Jupyter Notebooks that walk you through the entire OPLS-DA workflow and our rigorous validation process:
+```bash
+pip install -e ".[test]"
+```
 
-* **[Quickstart Tutorial](https://github.com/KaikunXu/pi-oplsda/blob/main/examples/quickstart.ipynb)**: A comprehensive guide from data loading to visualization and prediction.
-* **[R-ropls Equivalence Benchmark](https://github.com/KaikunXu/pi-oplsda/blob/main/examples/benchmark.ipynb)**: The complete script used to prove numerical consistency between Python and R implementations.
+The R package `ropls` should be installed in your regular R installation. It is not bundled with this Python package.
 
-## 📈 Visualization
+## Quickstart & Tutorials
 
-Running the `OPLSDA_Visualizer` will automatically generate a suite of tightly integrated diagnostic subplots to evaluate your model from multiple dimensions:
+Interactive examples are provided in the `examples` directory:
 
-+ **Model Overview:** Displays the step-wise increments of $R^2Y$ and $Q^2$ for both predictive and orthogonal components, illustrating the model's global explanatory and predictive capacity.
-+ **X-Score Plot:** Visualizes sample clustering and separation in the predictive latent space, complete with 95% Hotelling's $T^2$ confidence ellipses.
-+ **Observation Diagnostics:** Evaluates the relationship between sample influence (Score Distance) and model fit (Orthogonal Distance / DModX) to robustly identify multivariate outliers.
-+ **Permutation Test:** Validates model robustness against overfitting by comparing the original $R^2Y$ and $Q^2$ against permuted null distributions, providing empirical p-values.
-+ **VIP Bar Plot:** Ranks the top features contributing to group separation. It features **automatic text wrapping** for excessively long metabolite names on the Y-axis to ensure clean, publication-ready layouts.
-+ **S-Plot (Optional):** Highlights potential biomarkers based on the interplay between covariance (magnitude) and correlation (reliability). *(Note: This plot is available exclusively for binary classification models, as demonstrated in the Quickstart Tutorial).*
+- **[Quickstart Tutorial](https://github.com/KaikunXu/pi-oplsda/blob/main/examples/quickstart.ipynb):** ropls-compatible workflow with automatic orthogonal component selection.
+- **[R-ropls Equivalence Benchmark](https://github.com/KaikunXu/pi-oplsda/blob/main/examples/benchmark.ipynb):** numerical comparison between Python and R implementations.
+- **[Terminal Tutorial](https://github.com/KaikunXu/pi-oplsda/blob/main/examples/tutorial.py):** a script-oriented workflow.
+
+Minimal ropls-compatible usage:
+
+```python
+from piopls import OPLSDA, load_sacurine
+
+X, y, feature_names, sample_names = load_sacurine()
+
+model = OPLSDA(
+    n_ortho="auto",
+    max_ortho=10,
+    cv_folds=7,
+    compatibility="ropls",
+    random_state=42,
+)
+
+model.fit_pipeline(X, y, run_permutations=False)
+
+print(model.n_ortho_)
+print(model.get_model_info_df())
+print(model.get_summary_df())
+```
+
+For a scikit-learn style workflow, use the default `compatibility="sklearn"` or set it explicitly:
+
+```python
+model = OPLSDA(n_ortho=1, compatibility="sklearn", random_state=42)
+model.fit(X, y)
+
+y_pred = model.predict(X)
+y_score = model.decision_function(X)
+accuracy = model.score(X, y)
+```
+
+## Visualization
+
+Running `OPLSDA_Visualizer` generates a suite of diagnostic subplots:
+
+- **Model Overview:** Step-wise and cumulative model quality metrics.
+- **X-Score Plot:** Sample clustering in predictive and orthogonal latent spaces with confidence ellipses.
+- **Observation Diagnostics:** Score distance and orthogonal distance / DModX for outlier inspection.
+- **Permutation Test:** Original $R^2Y$ and $Q^2$ against permuted null distributions.
+- **VIP Bar Plot:** Top features contributing to group separation.
+- **S-Plot:** Feature covariance and correlation diagnostics for binary models.
+
+```python
+from piopls import OPLSDA_Visualizer
+
+vis = OPLSDA_Visualizer(
+    model=model,
+    y=y,
+    feature_names=feature_names,
+    sample_names=sample_names,
+    vip_threshold=1.0,
+    top_n_vip=20,
+)
+
+vis.plot_all()
+```
 
 ![pi-oplsda_visualizer](https://raw.githubusercontent.com/KaikunXu/pi-oplsda/main/assets/pi-oplsda_visualizer.png)
 
-## 🎯 Mathematical Equivalence & Benchmarking
+## Mathematical Equivalence & Benchmarking
 
-`pi-oplsda` is strictly validated against the gold-standard R package `ropls` (Bioconductor) to ensure scientific integrity. Our cross-platform benchmarking demonstrates that `pi-oplsda` produces numerically identical results across all key OPLS-DA metrics.
+`pi-oplsda` is validated against the R/Bioconductor package `ropls` to ensure scientific consistency. The benchmark uses the Sacurine human urine metabolomics dataset with 183 samples and 109 metabolites.
 
-Using the **Sacurine** human urine dataset (183 samples, 109 metabolites), we compared the Python and R implementations:
+The current benchmark aligns the two implementations as follows:
+
+- Python: `OPLSDA(n_ortho="auto", compatibility="ropls")`
+- R: `ropls::opls(..., predI = 1, orthoI = NA, crossvalI = 7)`
+
+Both implementations select two orthogonal components on the Sacurine dataset.
 
 | Metric | Description | Comparison |
 | :--- | :--- | :--- |
-| **Global Quality** | Cumulative $R^2X$, $R^2Y$, and $Q^2$ | **Approximately equal** |
-| **Error Assessment** | Root Mean Square Error of Estimation (RMSEE) | **Approximately equal** |
-| **Latent Space** | Predictive Scores ($t_1$, $to_{n}$) and Loadings ($p_1$) | **Pearson's r > 0.999** |
-| **Variable Importance** | Variable Importance in Projection (VIP) scores | **Pearson's r > 0.999** |
+| **Global Quality** | Cumulative $R^2X$, $R^2Y$, and $Q^2$ | Approximately equal |
+| **Error Assessment** | Root Mean Square Error of Estimation (RMSEE) | Approximately equal |
+| **Latent Space** | Predictive scores, predictive loadings, and orthogonal scores | Pearson's r ~= 1 |
+| **Variable Importance** | Variable Importance in Projection (VIP) scores | Pearson's r ~= 1 |
 
-Cross-platform benchmarking demonstrates that `pi-oplsda` produces numerically identical results across all key OPLS-DA metrics. To ensure a rigorous, one-to-one comparison of the underlying computational results, the testing process directly invokes the R engine via the `rpy2` interface. Model parameters were strictly aligned between platforms, fixing the predictive component to 1, optimizing orthogonal components  (n=3), and employing 7-fold cross-validation.
-
-In the visualizations below, the solid red scatter points map the values generated by both platforms as coordinate pairs ($x_{\text{ropls}}, y_{\text{pi-oplsda}}$), while the dashed black lines denote the ideal axis of perfect equivalence ($y=x$). The exceptionally high correlation coefficients ($r \approx 1.0000$) provide mathematical proof of algorithmic identity:
-
-* **Global Model Metrics (Top-Left):** Compares the overall cumulative explained variance ($R^2X$, $R^2Y$), cross-validated predictability ($Q^2$), and Root Mean Square Error of Estimation (RMSEE). The negligible absolute differences (Abs Diff $< 10^{-2}$) confirm macroscopic equivalence.
-* **Orthogonal Latent Space (Top-Right):** Displays the correlation of the orthogonal score vectors (e.g., $t_{o1}, t_{o2}$). This confirms that both models possess identical geometric capabilities in extracting and filtering intra-class structured noise.
-* **Feature Importance & Predictive Space (Bottom Row):** Illustrates the three critical vectors driving the discriminatory power of OPLS-DA: **VIP Scores** (determining biomarker ranking), **Predictive Scores** $t_1$ (driving sample clustering), and **Predictive Loadings** $p_1$ (determining feature weights). The diagonal alignment confirms absolute accuracy in microscopic sample profiling and feature extraction.
+The benchmark figure summarizes global metrics and five vector-level comparisons: predictive scores (`t1`), predictive loadings (`p1`), VIP scores, and two orthogonal score vectors (`to1`, `to2`).
 
 ![pi_oplsda_benchmark.png](https://raw.githubusercontent.com/KaikunXu/pi-oplsda/main/assets/pi_oplsda_benchmark.png)
 
-## 🤝 Acknowledgements
+## Testing
 
-The algorithmic foundation of `pi-oplsda` is deeply inspired by the excellent R package [`ropls`](https://bioconductor.org/packages/ropls/).
+Run the test suite with:
 
-> **Note:** Portions of this codebase, including code refactoring and documentation, were refined with the assistance of Gemini 3.1 Pro. All AI-assisted contributions have been strictly reviewed by the human author to ensure scientific accuracy and code quality.
+```bash
+pytest tests
+```
 
-## 🛠 Contributing
+The R benchmark test uses `rpy2` and skips cleanly when a standalone R installation or the R package `ropls` is unavailable. On Windows, the benchmark setup expects a regular R installation such as `D:/R/R-4.5.2`.
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/KaikunXu/pi-oplsda/issues).
+## Changelog
 
-## 📄 License
+Release notes are maintained separately in [CHANGELOG.md](https://github.com/KaikunXu/pi-oplsda/blob/main/CHANGELOG.md).
+
+## Acknowledgements
+
+The algorithmic foundation of `pi-oplsda` is inspired by the excellent R package [`ropls`](https://bioconductor.org/packages/ropls/).
+
+## Contributing
+
+Contributions, issues, and feature requests are welcome. Feel free to check the [issues page](https://github.com/KaikunXu/pi-oplsda/issues).
+
+## License
 
 This project is licensed under the **MIT License**.

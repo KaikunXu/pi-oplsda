@@ -27,7 +27,15 @@ def main():
     print("\n[1/4] Loading dataset and fitting global OPLS-DA model...")
     X, y_data, feature_names, sample_names = load_sacurine()
     
-    model_opls = OPLSDA(cv_folds=7, max_ortho=10, n_perms=100, n_jobs=-1)
+    model_opls = OPLSDA(
+        n_ortho=1,
+        cv_folds=7,
+        cv_strategy="stratified",
+        compatibility="sklearn",
+        random_state=42,
+        n_perms=100,
+        n_jobs=-1,
+    )
     model_opls.fit(X, y_data)
     model_opls.compute_q2(X, y_data)
     
@@ -72,7 +80,12 @@ def main():
     X_train, y_train = X[0::2].copy(), y_data[0::2].copy()
     X_test, y_test = X[1::2].copy(), y_data[1::2].copy()
     
-    model_predict = OPLSDA(n_ortho=1, cv_folds=7)
+    model_predict = OPLSDA(
+        n_ortho=1,
+        cv_folds=7,
+        cv_strategy="stratified",
+        random_state=42,
+    )
     model_predict.fit(X_train, y_train)
     
     y_pred_test = model_predict.predict(X_test)

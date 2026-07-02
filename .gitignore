@@ -70,6 +70,8 @@ venv.bak/
 # Testing: Pytest and coverage
 # ==========================================
 .pytest_cache/
+.pytest-tmp/
+.pytest-artifacts/
 .tox/
 .nox/
 .coverage

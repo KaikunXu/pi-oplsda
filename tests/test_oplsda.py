@@ -1,5 +1,6 @@
 # tests/test_oplsda.py
 import os
+from pathlib import Path
 import pytest
 import numpy as np
 import pandas as pd
@@ -148,10 +149,11 @@ def test_permutation_test(dummy_data):
     assert len(perm_res['perm_R2Y']) == 5, "Length of permutations mismatch."
 
 
-def test_sacurine_example_data(tmp_path):
+def test_sacurine_example_data():
     """
     Test the entire workflow using the built-in Sacurine dataset.
-    Uses tmp_path to ensure generated plots do not pollute the workspace.
+    Writes generated plots to a project-local ignored directory. This avoids
+    pytest's default system temp directory and Windows cleanup permission issues.
     """
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(current_dir)
@@ -191,7 +193,9 @@ def test_sacurine_example_data(tmp_path):
         top_n_vip=15
     )
     
-    save_path = os.path.join(tmp_path, "test_oplsda_diagnostic_plots.png")
+    artifact_dir = Path(project_root) / ".pytest-artifacts" / "test_sacurine_example_data"
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    save_path = artifact_dir / "test_oplsda_diagnostic_plots.png"
     vis.plot_all(perm_results=perm_results, save_path=save_path)
     
     assert os.path.exists(save_path), "Failed to generate diagnostic plots."

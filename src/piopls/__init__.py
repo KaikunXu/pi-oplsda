@@ -6,14 +6,15 @@ Strictly aligned with ropls algorithm definitions, providing highly efficient pa
 permutation tests and publication-ready visualizations.
 """
 
-from .oplsda_models import OPLSDA
+from .oplsda_models import OPLSDA, OPLSDAClassifier
 from .oplsda_plotting import OPLSDA_Visualizer
 from .datasets import load_sacurine
 
 __all__ = [
     "OPLSDA",
+    "OPLSDAClassifier",
     "OPLSDA_Visualizer",
     "load_sacurine"
 ]
 
-__version__ = "1.0.3"
+__version__ = "1.1.0"
