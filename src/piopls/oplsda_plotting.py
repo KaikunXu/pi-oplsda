@@ -33,6 +33,19 @@ class OPLSDA_Visualizer:
         palette (dict): Color mapping for categorical variables.
     """
 
+    PRIMARY_COLOR = "tab:red"
+    NEUTRAL_COLOR = "tab:gray"
+    LEGEND_DEFAULTS = dict(
+        frameon=True,
+        shadow=False,
+        edgecolor="black",
+        fontsize=10,
+        title_fontsize=11,
+        borderpad=0.4,
+        facecolor="white",
+        framealpha=1.0,
+    )
+
     def __init__(
         self, 
         model, 
@@ -99,16 +112,34 @@ class OPLSDA_Visualizer:
 
         self.vip_threshold = vip_threshold
         self.top_n_vip = top_n_vip
+        self.LEGEND_KWARGS = self.LEGEND_DEFAULTS.copy()
         
         # Assign color palette dynamically
         if custom_palette is not None:
             self.palette = custom_palette
         else:
-            keys = list(set(self.y_groups))
-            if len(keys) >= 2:
-                self.palette = {keys[0]: 'tab:blue', keys[1]: 'tab:red'}
-            else:
-                self.palette = {keys[0]: 'tab:blue'}
+            keys = self._ordered_unique(self.y_groups)
+            if not keys:
+                keys = list(self.class_names.values())
+            self.palette = {
+                key: self.PRIMARY_COLOR if i == 0 else self.NEUTRAL_COLOR
+                for i, key in enumerate(keys)
+            }
+        self.class_order = [
+            key for key in self._ordered_unique(self.y_groups)
+            if key in self.palette
+        ]
+        if not self.class_order:
+            self.class_order = list(self.palette.keys())
+
+    @staticmethod
+    def _ordered_unique(values):
+        """Return unique values while preserving their first-seen order."""
+        keys = []
+        for value in values:
+            if value not in keys:
+                keys.append(value)
+        return keys
 
     def _draw_confidence_ellipse(self, x, y, ax, n_std=2.0, **kwargs):
         """Calculates and draws a confidence ellipse representing covariance.
@@ -157,12 +188,48 @@ class OPLSDA_Visualizer:
         ax.tick_params(axis='both', labelsize=11)
         sns.despine(ax=ax, top=True, right=True, left=False, bottom=False)
 
-    def _add_legend(self, ax, title="", loc="best", ncol=1, **kwargs):
-        """Applies consistent aesthetic formatting to a legend."""
-        ax.legend(
-            title=title, ncol=ncol, frameon=True, shadow=True, 
-            fontsize=10, borderpad=0.4, facecolor="white", loc=loc,
-            **kwargs)
+    def _add_legend(
+        self,
+        ax,
+        title="",
+        loc="best",
+        ncol=1,
+        handles=None,
+        labels=None,
+        **kwargs
+    ):
+        """Apply pi-metaboqc-style legend formatting."""
+        if handles is None:
+            leg = ax.get_legend()
+            if leg is not None:
+                labels = [text.get_text() for text in leg.get_texts()]
+                handles = getattr(
+                    leg, "legend_handles", getattr(leg, "legendHandles", [])
+                )
+                if not handles:
+                    handles, labels = ax.get_legend_handles_labels()
+                leg.remove()
+            else:
+                handles, labels = ax.get_legend_handles_labels()
+        elif labels is None:
+            labels = [handle.get_label() for handle in handles]
+
+        filtered = [
+            (handle, label)
+            for handle, label in zip(handles, labels)
+            if label and not str(label).startswith("_")
+        ]
+        if not filtered:
+            return None
+
+        handles, labels = zip(*filtered)
+        legend_kwargs = self.LEGEND_KWARGS.copy()
+        legend_kwargs.update(kwargs)
+        legend_kwargs["ncol"] = ncol
+        if title:
+            legend_kwargs["title"] = title
+
+        return ax.legend(handles, labels, loc=loc, **legend_kwargs)
 
     def plot_all(
         self,
@@ -276,11 +343,11 @@ class OPLSDA_Visualizer:
 
         ax.bar(
             x - width/2, r2y_vals, width, label='R2Y', 
-            color='#6BAED6', edgecolor='k', linewidth=0.5
+            color=self.NEUTRAL_COLOR, edgecolor='k', linewidth=0.5
         )
         ax.bar(
             x + width/2, q2_vals, width, label='Q2',  
-            color='#2171B5', edgecolor='k', linewidth=0.5
+            color=self.PRIMARY_COLOR, edgecolor='k', linewidth=0.5
         )
 
         def add_labels(vals, offset):
@@ -344,10 +411,10 @@ class OPLSDA_Visualizer:
         sns.scatterplot(
             data=df_scores, x='t_pred (p1)', y='t_ortho_1_plot', 
             hue='True_Class', palette=self.palette, edgecolor='k', 
-            linewidth=0.5, s=40, ax=ax
+            linewidth=0.5, s=40, ax=ax, hue_order=self.class_order
         )
         
-        for cls_name in np.unique(df_scores['True_Class']):
+        for cls_name in self.class_order:
             sub = df_scores[df_scores['True_Class'] == cls_name]
             if cls_name in self.palette:
                 color = self.palette[cls_name]
@@ -377,11 +444,11 @@ class OPLSDA_Visualizer:
             bins = np.histogram_bin_edges(arr_concat, bins=30)
             
             ax.hist(
-                perms_r2y, bins=bins, color='tab:red', 
+                perms_r2y, bins=bins, color=self.NEUTRAL_COLOR,
                 edgecolor='k', linewidth=0.5, label='Perm R2Y'
             )
             ax.hist(
-                perms_q2, bins=bins, color='tab:blue', 
+                perms_q2, bins=bins, color=self.PRIMARY_COLOR,
                 edgecolor='k', linewidth=0.5, label='Perm Q2'
             )
             
@@ -391,10 +458,12 @@ class OPLSDA_Visualizer:
         ax.set_xlim(xmin, needed_xmax + (needed_xmax - xmin) * 0.15)
         
         ax.axvline(
-            real_r2y, color='tab:red', linestyle='--', linewidth=1.0, zorder=0
+            real_r2y, color=self.NEUTRAL_COLOR, linestyle='--',
+            linewidth=1.0, zorder=0
         )
         ax.axvline(
-            real_q2, color='tab:blue', linestyle='--', linewidth=1.0, zorder=0
+            real_q2, color=self.PRIMARY_COLOR, linestyle='--',
+            linewidth=1.0, zorder=0
         )
 
         arrow = dict(
@@ -436,7 +505,7 @@ class OPLSDA_Visualizer:
             df_feat['VIP'] >= self.vip_threshold, cat_high, cat_low
         )
         
-        palette = {cat_high: 'tab:red', cat_low: 'tab:blue'}
+        palette = {cat_high: self.PRIMARY_COLOR, cat_low: self.NEUTRAL_COLOR}
         
         sns.scatterplot(
             data=df_feat, x='Covariance (p1)', y='Correlation (pcorr1)', 
@@ -477,7 +546,10 @@ class OPLSDA_Visualizer:
             y='Feature_Wrapped', 
             x='VIP', 
             hue='Correlation_Type', 
-            palette={'Positive': 'tab:red', 'Negative': 'tab:blue'},
+            palette={
+                'Positive': self.PRIMARY_COLOR,
+                'Negative': self.NEUTRAL_COLOR,
+            },
             edgecolor='k', 
             linewidth=0.5, 
             dodge=False,
@@ -499,8 +571,12 @@ class OPLSDA_Visualizer:
             ax.get_legend().remove()
             
         legend_elements = [
-            Patch(facecolor='tab:red', edgecolor='k', label='Positive'), 
-            Patch(facecolor='tab:blue', edgecolor='k', label='Negative')
+            Patch(
+                facecolor=self.PRIMARY_COLOR, edgecolor='k', label='Positive'
+            ),
+            Patch(
+                facecolor=self.NEUTRAL_COLOR, edgecolor='k', label='Negative'
+            )
         ]
         
         self._add_legend(
@@ -547,7 +623,8 @@ class OPLSDA_Visualizer:
             sns.scatterplot(
                 data=df_norm, x='Score_Distance', y='Orthogonal_Distance', 
                 hue='True_Class', palette=self.palette, edgecolor='k', 
-                linewidth=0.5, s=40, marker='o', ax=ax, legend=False
+                linewidth=0.5, s=40, marker='o', ax=ax, legend=False,
+                hue_order=self.class_order
             )
             
         # 3. Render outlier samples: bold cross ('X'), size 70.
@@ -555,7 +632,8 @@ class OPLSDA_Visualizer:
             sns.scatterplot(
                 data=df_outl, x='Score_Distance', y='Orthogonal_Distance', 
                 hue='True_Class', palette=self.palette, edgecolor='k', 
-                linewidth=0.5, s=70, marker='X', ax=ax, legend=False
+                linewidth=0.5, s=70, marker='X', ax=ax, legend=False,
+                hue_order=self.class_order
             )
             
         # Draw black threshold cutoff lines.
@@ -579,7 +657,7 @@ class OPLSDA_Visualizer:
         legend_elements: list = []
         
         # Add color-coded circular markers for true classes.
-        for cls_name in df_out['True_Class'].unique():
+        for cls_name in self.class_order:
             if cls_name in self.palette:
                 color: str = self.palette[cls_name]
                 legend_elements.append(
@@ -591,7 +669,7 @@ class OPLSDA_Visualizer:
         # Append a shape indicator for the outlier 'X' marker.
         legend_elements.append(
             Line2D([0], [0], marker='X', color='w', label='Outliers',
-                   markerfacecolor='gray', markeredgecolor='k', 
+                   markerfacecolor='white', markeredgecolor='k',
                    markersize=8)
         )
         

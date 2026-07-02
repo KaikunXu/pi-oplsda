@@ -23,6 +23,8 @@ All notable user-facing changes to `pi-oplsda` are documented here.
   `orthoI=NA`; the Sacurine benchmark now selects two orthogonal components in
   both implementations.
 - Simplified permutation-test progress reporting to use `tqdm` only.
+- Updated diagnostic plot legends and default visualizer palette to match the
+  red/gray style used by `pi-metaboqc`.
 - Refreshed package metadata, README, and benchmark figure for the 1.1.0 API.
 
 ### Fixed
