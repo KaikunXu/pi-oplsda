@@ -1,9 +1,10 @@
 # src/piopls/__init__.py
 
-"""
-piopls: A Python package for Orthogonal Partial Least Squares Discriminant Analysis (OPLS-DA).
-Strictly aligned with ropls algorithm definitions, providing highly efficient parallel 
-permutation tests and publication-ready visualizations.
+"""Python utilities for Orthogonal Partial Least Squares Discriminant Analysis.
+
+The package provides ropls-aligned OPLS-DA computation, parallel permutation
+tests, scikit-learn style estimator methods, and publication-ready diagnostic
+visualizations.
 """
 
 from .oplsda_models import OPLSDA, OPLSDAClassifier
@@ -14,7 +15,7 @@ __all__ = [
     "OPLSDA",
     "OPLSDAClassifier",
     "OPLSDA_Visualizer",
-    "load_sacurine"
+    "load_sacurine",
 ]
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"

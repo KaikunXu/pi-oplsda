@@ -5,6 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any, Iterator
 
 import numpy as np
 import pandas as pd
@@ -13,7 +14,8 @@ import pytest
 from piopls import OPLSDA, load_sacurine
 
 
-def _candidate_r_homes():
+def _candidate_r_homes() -> Iterator[Path]:
+    """Yield candidate standalone R installation directories."""
     candidates = []
 
     env_home = os.environ.get("PI_OPLSDA_R_HOME")
@@ -67,7 +69,8 @@ def _candidate_r_homes():
         yield resolved
 
 
-def _configure_r_runtime():
+def _configure_r_runtime() -> tuple[str, list[Any]]:
+    """Configure environment variables and DLL lookup for embedded R."""
     selected = None
     selected_rscript = None
 
@@ -92,7 +95,9 @@ def _configure_r_runtime():
     existing_bin_dirs = [str(path) for path in bin_dirs if path.exists()]
 
     os.environ["R_HOME"] = str(selected)
-    os.environ["PATH"] = os.pathsep.join(existing_bin_dirs + [os.environ.get("PATH", "")])
+    os.environ["PATH"] = os.pathsep.join(
+        existing_bin_dirs + [os.environ.get("PATH", "")]
+    )
     os.environ.setdefault("PYTHONIOENCODING", "utf-8")
     os.environ.setdefault("RPY2_CFFI_MODE", "ABI")
 
@@ -119,7 +124,8 @@ def _configure_r_runtime():
     return str(selected), dll_handles
 
 
-def _patch_rpy2_windows_dll_lookup(r_home):
+def _patch_rpy2_windows_dll_lookup(r_home: str) -> None:
+    """Patch rpy2 DLL lookup for standalone Windows R installations."""
     if os.name != "nt":
         return
 
@@ -129,11 +135,14 @@ def _patch_rpy2_windows_dll_lookup(r_home):
     if getattr(original_get_r_flags, "_piopls_windows_patch", False):
         return
 
-    def get_r_flags_patched(r_home_arg, flags):
+    def get_r_flags_patched(r_home_arg: str, flags: str) -> Any:
+        """Return Windows DLL search paths for rpy2 ldflags probing."""
         if flags == "--ldflags":
             base = Path(r_home_arg or r_home)
             lib_dirs = [
-                str(path) for path in (base / "bin" / "x64", base / "bin") if path.exists()
+                str(path)
+                for path in (base / "bin" / "x64", base / "bin")
+                if path.exists()
             ]
             if lib_dirs:
                 return SimpleNamespace(I=None, L=lib_dirs, l=[]), []
@@ -144,14 +153,15 @@ def _patch_rpy2_windows_dll_lookup(r_home):
     rpy2_situation.get_r_flags = get_r_flags_patched
 
 
-def _abs_corr(a, b):
+def _abs_corr(a: Any, b: Any) -> float:
+    """Return the absolute Pearson correlation between two vectors."""
     a = np.asarray(a, dtype=float).ravel()
     b = np.asarray(b, dtype=float).ravel()
     assert a.shape == b.shape
     return abs(float(np.corrcoef(a, b)[0, 1]))
 
 
-def test_ropls_benchmark_auto_ortho():
+def test_ropls_benchmark_auto_ortho() -> None:
     """Validate pi-oplsda against R ropls with automatic orthogonal selection."""
 
     if "rpy2.robjects" in sys.modules or "rpy2.rinterface" in sys.modules:
@@ -226,11 +236,19 @@ def test_ropls_benchmark_auto_ortho():
     res_r = ro.globalenv["get_ropls_benchmark"](model_r)
 
     with localconverter(ro.default_converter + pandas2ri.converter):
-        summary_r = pd.DataFrame(ro.conversion.get_conversion().rpy2py(res_r.rx2("summary")))
+        summary_r = pd.DataFrame(
+            ro.conversion.get_conversion().rpy2py(res_r.rx2("summary"))
+        )
     with localconverter(ro.default_converter + numpy2ri.converter):
-        vip_r = np.asarray(ro.conversion.get_conversion().rpy2py(res_r.rx2("vip"))).ravel()
-        score_r = np.asarray(ro.conversion.get_conversion().rpy2py(res_r.rx2("score")))
-        loading_r = np.asarray(ro.conversion.get_conversion().rpy2py(res_r.rx2("loading")))
+        vip_r = np.asarray(
+            ro.conversion.get_conversion().rpy2py(res_r.rx2("vip"))
+        ).ravel()
+        score_r = np.asarray(
+            ro.conversion.get_conversion().rpy2py(res_r.rx2("score"))
+        )
+        loading_r = np.asarray(
+            ro.conversion.get_conversion().rpy2py(res_r.rx2("loading"))
+        )
         ortho_score_r = np.asarray(
             ro.conversion.get_conversion().rpy2py(res_r.rx2("ortho_score"))
         )
@@ -246,7 +264,10 @@ def test_ropls_benchmark_auto_ortho():
         ("Q2(cum)", "Q2(cum)"),
         ("RMSEE", "RMSEE"),
     ]:
-        assert abs(float(info_py.loc[0, py_col]) - float(summary_r[r_col].iloc[-1])) < scalar_tol
+        assert (
+            abs(float(info_py.loc[0, py_col]) - float(summary_r[r_col].iloc[-1]))
+            < scalar_tol
+        )
 
     assert _abs_corr(model_py.vip_ropls_, vip_r) > 0.9999
     assert _abs_corr(model_py.t_pred_, score_r[:, 0]) > 0.9999

@@ -10,7 +10,7 @@ explicit parameters rather than hidden defaults.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Any, Iterable, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -27,61 +27,95 @@ from tqdm import tqdm
 
 @dataclass(frozen=True)
 class _PreparedX:
+    """Validated predictor matrix metadata container.
+
+    Attributes:
+        values: Numeric predictor matrix after sklearn validation.
+        feature_names: Feature names captured from a pandas input, if present.
+        sample_names: Sample names captured from a pandas input, if present.
+    """
+
     values: np.ndarray
     feature_names: list[str] | None
     sample_names: list[str] | None
 
 
 class OPLSDA(BaseEstimator, ClassifierMixin):
-    """scikit-learn compatible binary OPLS-DA estimator.
+    """Scikit-learn compatible binary OPLS-DA estimator.
 
-    Parameters
-    ----------
-    n_ortho:
-        Number of orthogonal components. Use ``"auto"`` or ``None`` to select
-        the component count by cross-validated Q2 rules.
-    cv_folds:
-        Number of folds used by :meth:`compute_q2`.
-    compatibility:
-        ``"sklearn"`` keeps modern ML defaults. ``"ropls"`` switches the
-        default CV splitter, p-value denominator, RMSEE correction, and auto
-        component rule toward ropls conventions.
-    cv_strategy:
-        ``"auto"``, ``"stratified"``, ``"kfold"``, ``"ropls_venetian"``, or
-        ``"stratified_venetian"``. A splitter object with ``split`` is also
-        accepted.
-    cv_preprocess:
-        ``"fold"`` estimates scaling inside each fold. ``"global"`` reuses the
-        full-data scaling parameters during Q2 computation for ropls-style
-        comparisons.
-    scale:
-        Predictor scaling: ``"standard"``, ``"center"``, ``"pareto"``, or
-        ``"none"``.
+    The estimator implements a predictive OPLS-DA component plus optional
+    orthogonal components. It exposes both scikit-learn style prediction
+    methods and ropls-style summary tables for metabolomics workflows.
+
+    Args:
+        n_ortho: Number of orthogonal components. Use ``"auto"`` or ``None``
+            to select the component count by cross-validated Q2 rules.
+        cv_folds: Number of folds used by cross-validation.
+        max_ortho: Maximum number of orthogonal components considered when
+            ``n_ortho`` is automatic.
+        n_perms: Default number of response-label permutations.
+        n_jobs: Number of parallel workers used by permutation testing.
+        vip_method: VIP calculation mode. ``"vip4"`` follows the ropls-style
+            VIP4 calculation; other values use the predictive weight fallback.
+        compatibility: ``"sklearn"`` keeps modern ML defaults, while
+            ``"ropls"`` switches CV, p-value, RMSEE, and component-selection
+            defaults toward ropls conventions.
+        cv_strategy: Cross-validation strategy name or splitter object with a
+            ``split`` method.
+        cv_preprocess: ``"fold"`` estimates scaling inside each CV fold;
+            ``"global"`` reuses full-data scaling for ropls-style comparison.
+        scale: Predictor scaling mode: ``"standard"``, ``"center"``,
+            ``"pareto"``, or ``"none"``.
+        selection_rule: Orthogonal component selection rule.
+        auto_q2_min_delta: Minimum Q2 improvement required by sklearn-style
+            automatic orthogonal component selection.
+        remove_zero_variance: Whether to remove near-zero variance predictors
+            before model fitting.
+        missing: Missing-value policy, either ``"error"`` or ``"allow"``.
+        shuffle: Whether CV splitters should shuffle samples.
+        random_state: Random state used by CV splitters and permutation tests.
+        pvalue_method: Permutation p-value denominator mode.
+        rmsee_correction: RMSEE correction mode.
+        allow_multiclass: Whether to allow experimental ordinal coding for
+            more than two classes.
+
+    Attributes:
+        classes_: Encoded class labels learned during fitting.
+        n_ortho_: Number of orthogonal components used by the fitted model.
+        t_pred_: Predictive score vector for the fitted samples.
+        T_ortho_: Orthogonal score matrix for the fitted samples.
+        p_pred_: Predictive loading vector.
+        vip_: Feature VIP scores.
+        R2X_comp_: Component-wise explained X variance.
+        R2Y_comp_: Component-wise explained Y variance.
+        Q2_comp_: Component-wise cross-validated Q2 values after
+            :meth:`compute_q2`.
     """
 
     def __init__(
         self,
-        n_ortho=1,
-        cv_folds=7,
-        max_ortho=10,
-        n_perms=100,
-        n_jobs=-1,
-        vip_method="vip4",
+        n_ortho: Union[int, str, None] = 1,
+        cv_folds: int = 7,
+        max_ortho: int = 10,
+        n_perms: int = 100,
+        n_jobs: int = -1,
+        vip_method: str = "vip4",
         *,
-        compatibility="sklearn",
-        cv_strategy="auto",
-        cv_preprocess="fold",
-        scale="standard",
-        selection_rule="auto",
-        auto_q2_min_delta=0.01,
-        remove_zero_variance=True,
-        missing="error",
-        shuffle=False,
-        random_state=None,
-        pvalue_method="auto",
-        rmsee_correction="auto",
-        allow_multiclass=False,
-    ):
+        compatibility: str = "sklearn",
+        cv_strategy: Any = "auto",
+        cv_preprocess: str = "fold",
+        scale: str = "standard",
+        selection_rule: str = "auto",
+        auto_q2_min_delta: float = 0.01,
+        remove_zero_variance: bool = True,
+        missing: str = "error",
+        shuffle: bool = False,
+        random_state: Optional[Any] = None,
+        pvalue_method: str = "auto",
+        rmsee_correction: str = "auto",
+        allow_multiclass: bool = False,
+    ) -> None:
+        """Initialize estimator hyperparameters."""
         self.n_ortho = n_ortho
         self.cv_folds = cv_folds
         self.max_ortho = max_ortho
@@ -105,7 +139,7 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
     # ------------------------------------------------------------------
     # Public sklearn-style API
     # ------------------------------------------------------------------
-    def fit(self, X, y):
+    def fit(self, X: Any, y: Any) -> "OPLSDA":
         """Fit the OPLS-DA classifier."""
         self._validate_params()
         x_prepared = self._prepare_X(X, reset=True)
@@ -144,7 +178,7 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
         self._fit_numeric(X_model, y_num)
         return self
 
-    def predict(self, X):
+    def predict(self, X: Any) -> np.ndarray:
         """Predict class labels for samples in X."""
         check_is_fitted(self, "classes_")
         y_pred_num = self._predict_continuous(X)
@@ -156,29 +190,34 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
             )
         return self.label_encoder.inverse_transform(pred_idx)
 
-    def decision_function(self, X):
+    def decision_function(self, X: Any) -> np.ndarray:
         """Return the continuous OPLS-DA response before thresholding."""
         return self._predict_continuous(X)
 
-    def transform(self, X):
+    def transform(self, X: Any) -> np.ndarray:
         """Project X onto predictive and orthogonal score components."""
         scores = self._project_scores(X)
         if self.n_ortho_ > 0:
             return np.column_stack([scores["t_pred"], scores["t_ortho"]])
         return scores["t_pred"][:, np.newaxis]
 
-    def fit_transform(self, X, y):
+    def fit_transform(self, X: Any, y: Any) -> np.ndarray:
         """Fit the estimator and return training scores."""
         return self.fit(X, y).transform(X)
 
-    def score(self, X, y):
+    def score(self, X: Any, y: Any) -> float:
         """Return classification accuracy, matching sklearn classifier API."""
         return accuracy_score(y, self.predict(X))
 
     # ------------------------------------------------------------------
     # ropls-style workflow helpers retained for existing users
     # ------------------------------------------------------------------
-    def fit_pipeline(self, X, y, run_permutations=True) -> dict:
+    def fit_pipeline(
+        self,
+        X: Any,
+        y: Any,
+        run_permutations: bool = True,
+    ) -> dict[str, Any]:
         """Fit, compute Q2, and optionally run a permutation test."""
         self.fit(X, y)
         self.compute_q2(X, y)
@@ -186,7 +225,7 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
             return self.permutation_test(X, y)
         return {}
 
-    def compute_q2(self, X, y):
+    def compute_q2(self, X: Any, y: Any) -> float:
         """Compute cross-validated Q2 values for 0..n_ortho components."""
         check_is_fitted(self, "classes_")
         x_prepared = self._prepare_X(X, reset=False)
@@ -250,7 +289,13 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
         self.q2_ = self.Q2_
         return self.Q2_
 
-    def permutation_test(self, X, y, n_perms=None, n_jobs=None):
+    def permutation_test(
+        self,
+        X: Any,
+        y: Any,
+        n_perms: Optional[int] = None,
+        n_jobs: Optional[int] = None,
+    ) -> dict[str, Any]:
         """Run a response-label permutation test."""
         check_is_fitted(self, "classes_")
         n_perms = int(n_perms or self.n_perms)
@@ -273,7 +318,7 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
             total=n_perms,
             desc="Permutation Test",
             ncols=80,
-            colour="#2CA02C",
+            colour=None,
             bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [ETA: {remaining}]",
             leave=True,
         )
@@ -293,7 +338,11 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
         count_r2y = sum(1 for val in perms_r2y if val >= orig_r2y)
         count_q2 = sum(1 for val in perms_q2 if val >= orig_q2)
 
-        denom = valid_perms if self._effective_pvalue_method() == "ropls" else valid_perms + 1
+        denom = (
+            valid_perms
+            if self._effective_pvalue_method() == "ropls"
+            else valid_perms + 1
+        )
         p_r2y = (count_r2y + 1) / denom
         p_q2 = (count_q2 + 1) / denom
 
@@ -313,7 +362,7 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
     # ------------------------------------------------------------------
     # Export helpers used by the visualizer and notebooks
     # ------------------------------------------------------------------
-    def get_model_info_df(self):
+    def get_model_info_df(self) -> pd.DataFrame:
         """Return one-row model metadata in the ropls summary style."""
         if not hasattr(self, "Q2_"):
             raise ValueError("Model must compute Q2 first.")
@@ -333,7 +382,7 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
             data["pQ2"] = [self.p_Q2_]
         return pd.DataFrame(data)
 
-    def get_summary_df(self):
+    def get_summary_df(self) -> pd.DataFrame:
         """Return component-wise R2X/R2Y/Q2 values."""
         if not hasattr(self, "Q2_comp_"):
             raise ValueError("Model must compute Q2 first.")
@@ -353,7 +402,11 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
             }
         )
 
-    def get_scores_df(self, sample_names=None, y_true=None):
+    def get_scores_df(
+        self,
+        sample_names: Optional[Any] = None,
+        y_true: Optional[Any] = None,
+    ) -> pd.DataFrame:
         """Return sample scores and fitted labels."""
         names = self._resolve_sample_names(sample_names)
         data = {"Sample": names, "t_pred (p1)": self.t_pred_.flatten()}
@@ -373,7 +426,7 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
             )
         return df
 
-    def get_features_df(self, feature_names=None):
+    def get_features_df(self, feature_names: Optional[Any] = None) -> pd.DataFrame:
         """Return feature-level VIP, covariance, and correlation metrics."""
         names = self._resolve_feature_names(feature_names)
         df = pd.DataFrame(
@@ -387,7 +440,11 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
         )
         return df.sort_values(by="VIP", ascending=False).reset_index(drop=True)
 
-    def get_outlier_df(self, sample_names=None, y_true=None):
+    def get_outlier_df(
+        self,
+        sample_names: Optional[Any] = None,
+        y_true: Optional[Any] = None,
+    ) -> pd.DataFrame:
         """Return score/orthogonal distances and threshold flags."""
         names = self._resolve_sample_names(sample_names)
         df = pd.DataFrame(
@@ -407,19 +464,40 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
     # ------------------------------------------------------------------
     # Internal fitting and prediction
     # ------------------------------------------------------------------
-    def _fit_numeric(self, X, y_numeric, x_mean=None, x_std=None, y_mean=None, y_std=None):
+    def _fit_numeric(
+        self,
+        X: Any,
+        y_numeric: Any,
+        x_mean: Optional[Any] = None,
+        x_std: Optional[Any] = None,
+        y_mean: Optional[float] = None,
+        y_std: Optional[float] = None,
+    ) -> "OPLSDA":
+        """Fit the numeric OPLS-DA model after label encoding."""
         X = np.asarray(X, dtype=float)
         y_numeric = np.asarray(y_numeric, dtype=float)
         n_samples, n_features = X.shape
 
-        self.x_mean_ = np.nanmean(X, axis=0) if x_mean is None else np.asarray(x_mean, dtype=float)
-        self.x_std_ = self._scale_vector(X) if x_std is None else np.asarray(x_std, dtype=float)
+        self.x_mean_ = (
+            np.nanmean(X, axis=0)
+            if x_mean is None
+            else np.asarray(x_mean, dtype=float)
+        )
+        self.x_std_ = (
+            self._scale_vector(X)
+            if x_std is None
+            else np.asarray(x_std, dtype=float)
+        )
         self.x_std_ = self._sanitize_scale(self.x_std_)
         E = (X - self.x_mean_) / self.x_std_
         E_orig = E.copy()
 
-        self.y_mean_ = float(np.nanmean(y_numeric)) if y_mean is None else float(y_mean)
-        self.y_std_ = float(np.nanstd(y_numeric, ddof=1)) if y_std is None else float(y_std)
+        self.y_mean_ = (
+            float(np.nanmean(y_numeric)) if y_mean is None else float(y_mean)
+        )
+        self.y_std_ = (
+            float(np.nanstd(y_numeric, ddof=1)) if y_std is None else float(y_std)
+        )
         if self.y_std_ == 0:
             self.y_std_ = 1.0
         f = (y_numeric - self.y_mean_) / self.y_std_
@@ -506,7 +584,12 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
         self.intercept_ = self.y_mean_ - np.dot(self.x_mean_, self.coef_)
         return self
 
-    def _predictive_component(self, E, f):
+    def _predictive_component(
+        self,
+        E: np.ndarray,
+        f: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, float]:
+        """Extract one predictive component from the current residual matrix."""
         w = np.nansum(E * f[:, np.newaxis], axis=0)
         norm_w = np.linalg.norm(w)
         if norm_w == 0:
@@ -522,23 +605,27 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
         c = np.nansum(f * t) / np.nansum(t**2)
         return w, t, p, c
 
-    def _predict_continuous(self, X):
+    def _predict_continuous(self, X: Any) -> np.ndarray:
+        """Predict continuous numeric responses for raw input data."""
         check_is_fitted(self, "w_pred_")
         x_prepared = self._prepare_X(X, reset=False)
         X_arr = self._apply_zero_variance_filter(x_prepared.values, fit=False)
         return self._predict_continuous_prepared(X_arr)
 
-    def _predict_continuous_prepared(self, X):
+    def _predict_continuous_prepared(self, X: Any) -> np.ndarray:
+        """Predict continuous numeric responses for prepared model features."""
         scores = self._project_scores_prepared(X)
         return (scores["t_pred"] * self.c_pred_) * self.y_std_ + self.y_mean_
 
-    def _project_scores(self, X):
+    def _project_scores(self, X: Any) -> dict[str, np.ndarray]:
+        """Project raw input data onto fitted OPLS-DA scores."""
         check_is_fitted(self, "w_pred_")
         x_prepared = self._prepare_X(X, reset=False)
         X_arr = self._apply_zero_variance_filter(x_prepared.values, fit=False)
         return self._project_scores_prepared(X_arr)
 
-    def _project_scores_prepared(self, X):
+    def _project_scores_prepared(self, X: Any) -> dict[str, np.ndarray]:
+        """Project prepared model features onto fitted OPLS-DA scores."""
         E = (np.asarray(X, dtype=float) - self.x_mean_) / self.x_std_
         t_ortho_cols = []
         for i in range(self.n_ortho_):
@@ -560,7 +647,8 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
             t_ortho = np.zeros((X.shape[0], 0))
         return {"t_pred": t_pred, "t_ortho": t_ortho}
 
-    def predict_from_numeric(self, y_pred_num):
+    def predict_from_numeric(self, y_pred_num: Any) -> np.ndarray:
+        """Convert continuous fitted values into class labels."""
         if len(self.classes_) == 2:
             pred_idx = (np.asarray(y_pred_num) > 0.5).astype(int)
         else:
@@ -572,7 +660,8 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
     # ------------------------------------------------------------------
     # Validation, CV, and compatibility helpers
     # ------------------------------------------------------------------
-    def _validate_params(self):
+    def _validate_params(self) -> None:
+        """Validate estimator hyperparameters before fitting."""
         if self.compatibility not in {"sklearn", "ropls"}:
             raise ValueError("compatibility must be 'sklearn' or 'ropls'.")
         if self.cv_preprocess not in {"fold", "global"}:
@@ -584,8 +673,11 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
         if self.selection_rule not in {"auto", "sklearn_q2", "ropls"}:
             raise ValueError("selection_rule must be 'auto', 'sklearn_q2', or 'ropls'.")
 
-    def _prepare_X(self, X, reset):
-        feature_names = X.columns.astype(str).tolist() if hasattr(X, "columns") else None
+    def _prepare_X(self, X: Any, reset: bool) -> _PreparedX:
+        """Validate X and capture optional pandas metadata."""
+        feature_names = (
+            X.columns.astype(str).tolist() if hasattr(X, "columns") else None
+        )
         sample_names = X.index.astype(str).tolist() if hasattr(X, "index") else None
         force_all_finite = "allow-nan" if self.missing == "allow" else True
         try:
@@ -610,7 +702,8 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
                 )
         return _PreparedX(X_arr, feature_names, sample_names)
 
-    def _apply_zero_variance_filter(self, X, fit):
+    def _apply_zero_variance_filter(self, X: np.ndarray, fit: bool) -> np.ndarray:
+        """Apply or reuse the near-zero variance feature filter."""
         if fit:
             variances = np.nanvar(X, axis=0, ddof=1)
             if self.remove_zero_variance:
@@ -624,7 +717,8 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
             return X[:, mask]
         return X[:, self.zero_variance_mask_]
 
-    def _resolve_n_ortho(self, X, y_num):
+    def _resolve_n_ortho(self, X: np.ndarray, y_num: np.ndarray) -> int:
+        """Resolve the requested orthogonal component count."""
         if self.n_ortho in (None, "auto"):
             return self._find_best_n_ortho(X, y_num)
         n_ortho = int(self.n_ortho)
@@ -634,7 +728,8 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
             raise ValueError("n_ortho + 1 cannot exceed min(n_samples, n_features).")
         return n_ortho
 
-    def _find_best_n_ortho(self, X, y_num):
+    def _find_best_n_ortho(self, X: np.ndarray, y_num: np.ndarray) -> int:
+        """Select orthogonal component count with the active rule."""
         rule = self._effective_selection_rule()
         best_n = 0
         prev_q2 = None
@@ -671,7 +766,12 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
                 break
         return best_n
 
-    def _iter_cv_splits(self, X, y_num) -> Iterable[tuple[np.ndarray, np.ndarray]]:
+    def _iter_cv_splits(
+        self,
+        X: np.ndarray,
+        y_num: np.ndarray,
+    ) -> Iterable[tuple[np.ndarray, np.ndarray]]:
+        """Yield train/test indices for the active CV strategy."""
         strategy = self._effective_cv_strategy_name()
         n = X.shape[0]
         if self.cv_folds < 2 or self.cv_folds > n:
@@ -711,34 +811,40 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
             )
             yield from splitter.split(X, y_num)
 
-    def _effective_cv_strategy_name(self):
+    def _effective_cv_strategy_name(self) -> str:
+        """Return the resolved CV strategy name."""
         if not isinstance(self.cv_strategy, str) and hasattr(self.cv_strategy, "split"):
             return self.cv_strategy.__class__.__name__
         if self.cv_strategy == "auto":
             return "ropls_venetian" if self.compatibility == "ropls" else "stratified"
         return self.cv_strategy
 
-    def _effective_cv_preprocess(self):
+    def _effective_cv_preprocess(self) -> str:
+        """Return the resolved CV preprocessing mode."""
         if self.compatibility == "ropls" and self.cv_preprocess == "fold":
             return "global"
         return self.cv_preprocess
 
-    def _effective_selection_rule(self):
+    def _effective_selection_rule(self) -> str:
+        """Return the resolved orthogonal component selection rule."""
         if self.selection_rule == "auto":
             return "ropls" if self.compatibility == "ropls" else "sklearn_q2"
         return self.selection_rule
 
-    def _effective_pvalue_method(self):
+    def _effective_pvalue_method(self) -> str:
+        """Return the resolved permutation p-value method."""
         if self.pvalue_method == "auto":
             return "ropls" if self.compatibility == "ropls" else "standard"
         return self.pvalue_method
 
-    def _effective_rmsee_correction(self):
+    def _effective_rmsee_correction(self) -> str:
+        """Return the resolved RMSEE correction mode."""
         if self.rmsee_correction == "auto":
             return "ropls" if self.compatibility == "ropls" else "sklearn"
         return self.rmsee_correction
 
-    def _new_like(self, *, n_ortho):
+    def _new_like(self, *, n_ortho: int) -> "OPLSDA":
+        """Create a clone-like estimator for CV and permutation loops."""
         return OPLSDA(
             n_ortho=n_ortho,
             cv_folds=self.cv_folds,
@@ -761,7 +867,13 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
             allow_multiclass=self.allow_multiclass,
         )
 
-    def _single_permutation(self, X, y_numeric, seed):
+    def _single_permutation(
+        self,
+        X: np.ndarray,
+        y_numeric: np.ndarray,
+        seed: int,
+    ) -> tuple[float, float]:
+        """Run one response-label permutation iteration."""
         rng = check_random_state(seed)
         y_perm = rng.permutation(y_numeric)
         model_perm = self._new_like(n_ortho=self.n_ortho_)
@@ -784,7 +896,8 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
     # ------------------------------------------------------------------
     # Numeric utilities
     # ------------------------------------------------------------------
-    def _scale_vector(self, X):
+    def _scale_vector(self, X: np.ndarray) -> np.ndarray:
+        """Compute the predictor scaling vector for the active scale mode."""
         if self.scale == "none":
             self.x_mean_ = np.zeros(X.shape[1], dtype=float)
             return np.ones(X.shape[1], dtype=float)
@@ -796,12 +909,14 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
         return sd
 
     @staticmethod
-    def _sanitize_scale(scale):
+    def _sanitize_scale(scale: Any) -> np.ndarray:
+        """Replace invalid scaling values with one."""
         scale = np.asarray(scale, dtype=float)
         scale[(scale == 0) | ~np.isfinite(scale)] = 1.0
         return scale
 
-    def _rmsee(self, y_true, y_pred):
+    def _rmsee(self, y_true: Any, y_pred: Any) -> float:
+        """Compute RMSEE with the active correction convention."""
         rmse = np.sqrt(np.nanmean((y_true - y_pred) ** 2))
         if self._effective_rmsee_correction() == "ropls":
             denom = len(y_true) - (1 + 1 + self.n_ortho_)
@@ -809,7 +924,8 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
                 return rmse * np.sqrt(len(y_true) / denom)
         return rmse
 
-    def _compute_vip(self, n_features):
+    def _compute_vip(self, n_features: int) -> None:
+        """Compute feature VIP scores for the fitted model."""
         if self.vip_method == "vip4":
             sxp = np.nansum(np.outer(self.t_pred_, self.p_pred_) ** 2)
             sxo = sum(
@@ -836,7 +952,8 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
             self.vip_ropls_ = np.sqrt(n_features * (w_star_pred**2))
         self.vip_ = self.vip_ropls_
 
-    def _compute_feature_correlations(self, X):
+    def _compute_feature_correlations(self, X: np.ndarray) -> None:
+        """Compute feature covariance and correlation against predictive scores."""
         covariances = np.zeros(X.shape[1])
         correlations = np.zeros(X.shape[1])
         X_centered = X - np.nanmean(X, axis=0)
@@ -853,7 +970,8 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
         self.covariances_ = covariances
         self.correlations_ = correlations
 
-    def _compute_outlier_diagnostics(self, E_orig):
+    def _compute_outlier_diagnostics(self, E_orig: np.ndarray) -> None:
+        """Compute score and orthogonal distance diagnostics."""
         E_res = E_orig - np.outer(self.t_pred_, self.p_pred_)
         for i in range(self.n_ortho_):
             E_res -= np.outer(self.T_ortho_[:, i], self.P_ortho_[:, i])
@@ -871,11 +989,14 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
 
         if len(self.OD_) > 1:
             od_23 = self.OD_ ** (2 / 3)
-            self.od_limit_ = (np.mean(od_23) + norm.ppf(0.95) * np.std(od_23, ddof=1)) ** (3 / 2)
+            self.od_limit_ = (
+                np.mean(od_23) + norm.ppf(0.95) * np.std(od_23, ddof=1)
+            ) ** (3 / 2)
         else:
             self.od_limit_ = np.max(self.OD_) * 1.1
 
-    def _kept_feature_names(self):
+    def _kept_feature_names(self) -> list[str]:
+        """Return feature names retained after zero-variance filtering."""
         if self.feature_names_in_ is None:
             return [f"F_{i}" for i in range(self.n_model_features_in_)]
         return [
@@ -884,7 +1005,8 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
             if keep
         ]
 
-    def _resolve_feature_names(self, feature_names):
+    def _resolve_feature_names(self, feature_names: Optional[Any]) -> list[str]:
+        """Resolve exported feature names against fitted feature counts."""
         if feature_names is None:
             return list(self.kept_feature_names_)
         names = list(feature_names)
@@ -894,7 +1016,8 @@ class OPLSDA(BaseEstimator, ClassifierMixin):
             return names
         raise ValueError("feature_names length does not match fitted feature count.")
 
-    def _resolve_sample_names(self, sample_names):
+    def _resolve_sample_names(self, sample_names: Optional[Any]) -> list[str]:
+        """Resolve exported sample names against fitted sample metadata."""
         if sample_names is not None:
             return list(sample_names)
         if self.sample_names_in_ is not None:

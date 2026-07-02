@@ -6,10 +6,11 @@ to generate publication-ready diagnostic plots, including Model Overview,
 Score Plot, Permutation Test Plot, S-Plot, and VIP Bar Plot.
 """
 
+import textwrap
+from typing import Any, Optional
+
 import numpy as np
 import pandas as pd
-import textwrap
-
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse, Patch
 from matplotlib.transforms import Affine2D
@@ -17,20 +18,34 @@ import seaborn as sns
 
 
 class OPLSDA_Visualizer:
-    """Visualization suite generating the 5 standard diagnostic plots.
+    """Diagnostic visualizer for fitted OPLS-DA models.
 
-    Generates (A) Model Overview, (B) X-Score Plot, (C) Permutation Test, 
-    (D) S-Plot, and (E) VIP Bar Plot.
+    The visualizer consumes the DataFrame export methods provided by
+    :class:`piopls.OPLSDA` and renders a compact diagnostic dashboard covering
+    model quality, predictive/orthogonal scores, observation diagnostics,
+    permutation results, VIP rankings, and S-plot style feature summaries.
+
+    Args:
+        model: Fitted OPLSDA model instance.
+        X: Optional feature matrix retained for compatibility with older
+            calling code.
+        y: Optional class labels used for grouping score plots and legends.
+        feature_names: Optional feature names used in exported feature plots.
+        sample_names: Optional sample names used in exported sample tables.
+        vip_threshold: VIP cutoff used to highlight features in the S-plot.
+        top_n_vip: Number of top features displayed in the VIP bar plot.
+        custom_palette: Optional explicit class-to-color mapping.
 
     Attributes:
-        model (OPLSDA): The fitted OPLSDA model instance.
-        feature_names (list): List of feature names.
-        sample_names (list): List of sample names.
-        class_names (dict): Mapping of encoded integers to class names.
-        y_groups (list): Class assignments for visualization grouping.
-        vip_threshold (float): Threshold to highlight features in S-Plot.
-        top_n_vip (int): Number of top features for VIP bar plot.
-        palette (dict): Color mapping for categorical variables.
+        model: Fitted OPLSDA model instance.
+        feature_names: Feature names passed to feature export methods.
+        sample_names: Sample names passed to score export methods.
+        class_names: Mapping of encoded integer labels to class labels.
+        y_groups: Class assignments used for grouped plots.
+        vip_threshold: VIP cutoff for feature highlighting.
+        top_n_vip: Maximum number of VIP-ranked features to display.
+        palette: Class-to-color mapping used by score and diagnostic plots.
+        class_order: Stable class ordering shared by score plot legends.
     """
 
     PRIMARY_COLOR = "tab:red"
@@ -48,30 +63,16 @@ class OPLSDA_Visualizer:
 
     def __init__(
         self, 
-        model, 
-        X=None, 
-        y=None, 
-        feature_names=None, 
-        sample_names=None, 
-        vip_threshold=1.0, 
-        top_n_vip=25, 
-        custom_palette=None
-    ):
-        """Initializes the visualizer with the model and rendering settings.
-
-        Args:
-            model (OPLSDA): The fitted OPLSDA model.
-            X (array-like, optional): Feature matrix. Defaults to None.
-            y (array-like, optional): Target vector. Defaults to None.
-            feature_names (list, optional): Names of features. Defaults to None.
-            sample_names (list, optional): Names of samples. Defaults to None.
-            vip_threshold (float, optional): VIP cutoff for S-plot styling. 
-                Defaults to 1.0.
-            top_n_vip (int, optional): Max features for VIP bar plot. 
-                Defaults to 25.
-            custom_palette (dict, optional): Custom color mapping for classes. 
-                Defaults to None.
-        """
+        model: Any,
+        X: Optional[Any] = None,
+        y: Optional[Any] = None,
+        feature_names: Optional[Any] = None,
+        sample_names: Optional[Any] = None,
+        vip_threshold: float = 1.0,
+        top_n_vip: int = 25,
+        custom_palette: Optional[dict[Any, str]] = None,
+    ) -> None:
+        """Initialize the visualizer with model and rendering settings."""
         # ==========================================
         # Global Matplotlib & Seaborn Configuration
         # ==========================================
@@ -133,7 +134,7 @@ class OPLSDA_Visualizer:
             self.class_order = list(self.palette.keys())
 
     @staticmethod
-    def _ordered_unique(values):
+    def _ordered_unique(values: Any) -> list[Any]:
         """Return unique values while preserving their first-seen order."""
         keys = []
         for value in values:
@@ -141,17 +142,15 @@ class OPLSDA_Visualizer:
                 keys.append(value)
         return keys
 
-    def _draw_confidence_ellipse(self, x, y, ax, n_std=2.0, **kwargs):
-        """Calculates and draws a confidence ellipse representing covariance.
-
-        Args:
-            x (array-like): X-axis coordinates.
-            y (array-like): Y-axis coordinates.
-            ax (matplotlib.axes.Axes): Target axes object.
-            n_std (float, optional): Number of standard deviations for 
-                the ellipse radius. Defaults to 2.0.
-            **kwargs: Additional styling arguments for the Ellipse patch.
-        """
+    def _draw_confidence_ellipse(
+        self,
+        x: Any,
+        y: Any,
+        ax: Any,
+        n_std: float = 2.0,
+        **kwargs: Any,
+    ) -> None:
+        """Draw a covariance confidence ellipse on an axes object."""
         if x.size != y.size or x.size < 3: 
             return
             
@@ -180,7 +179,7 @@ class OPLSDA_Visualizer:
         ellipse.set_transform(transf + ax.transData)
         ax.add_patch(ellipse)
 
-    def _format_ax(self, ax, xlabel, ylabel, title):
+    def _format_ax(self, ax: Any, xlabel: str, ylabel: str, title: str) -> None:
         """Applies consistent aesthetic formatting to an axes object."""
         ax.set_xlabel(xlabel, fontsize=11, fontweight='normal')
         ax.set_ylabel(ylabel, fontsize=11, fontweight='normal')
@@ -190,14 +189,14 @@ class OPLSDA_Visualizer:
 
     def _add_legend(
         self,
-        ax,
-        title="",
-        loc="best",
-        ncol=1,
-        handles=None,
-        labels=None,
-        **kwargs
-    ):
+        ax: Any,
+        title: str = "",
+        loc: str = "best",
+        ncol: int = 1,
+        handles: Optional[Any] = None,
+        labels: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> Optional[Any]:
         """Apply pi-metaboqc-style legend formatting."""
         if handles is None:
             leg = ax.get_legend()
@@ -233,33 +232,14 @@ class OPLSDA_Visualizer:
 
     def plot_all(
         self,
-        perm_results = None,
-        save_path = None,
-        wrap_width = 20,
-        figsize = (8.0, 6.0),
-        return_fig = False,
-        show_plot = False
-    ):
-        """Generates and displays diagnostic plots using patchworklib.
-
-        Combines the Model Overview, X-Score Plot, Permutation Test, S-Plot, 
-        and VIP Bar Plot. It supports file export, Jupyter integration, and 
-        standalone GUI blocking execution.
-
-        Args:
-            perm_results: Dictionary containing permutation test results.
-            save_path: File path to save the generated figure.
-            wrap_width: Maximum character width for VIP y-labels.
-            figsize: Width and height in inches for the total figure.
-            return_fig: If True, returns the pw.Brick object for Jupyter 
-                display. Defaults to False.
-            show_plot: If True, opens a blocking Matplotlib GUI window to 
-                display the plot in standalone Python scripts. Defaults to False.
-
-        Returns:
-            The final patchworklib figure object if return_fig is True.
-            Otherwise, returns None.
-        """
+        perm_results: Optional[dict[str, Any]] = None,
+        save_path: Optional[Any] = None,
+        wrap_width: int = 20,
+        figsize: tuple[float, float] = (8.0, 6.0),
+        return_fig: bool = False,
+        show_plot: bool = False,
+    ) -> Optional[Any]:
+        """Generate the combined diagnostic dashboard."""
         import io
         import patchworklib as pw
         import matplotlib.image as mpimg
@@ -325,7 +305,7 @@ class OPLSDA_Visualizer:
         return final_fig
 
 
-    def plot_model_overview(self, ax=None):
+    def plot_model_overview(self, ax: Optional[Any] = None) -> None:
         """Plots a grouped bar chart showing R2Y and Q2 for each component."""
         df_summary = self.model.get_summary_df()
         labels = [
@@ -350,7 +330,8 @@ class OPLSDA_Visualizer:
             color=self.PRIMARY_COLOR, edgecolor='k', linewidth=0.5
         )
 
-        def add_labels(vals, offset):
+        def add_labels(vals: list[float], offset: float) -> None:
+            """Add numeric labels above or below component bars."""
             for i, v in enumerate(vals):
                 if v == 0: 
                     continue
@@ -379,7 +360,7 @@ class OPLSDA_Visualizer:
         self._format_ax(ax, xlabel="", ylabel="", title="Model Overview")
         self._add_legend(ax, ncol=1, loc='upper right')
 
-    def plot_score(self, ax=None):
+    def plot_score(self, ax: Optional[Any] = None) -> None:
         """Plots the sample score scatter plot."""
         if ax is None: 
             _, ax = plt.subplots(figsize=(4.5, 3))
@@ -428,7 +409,11 @@ class OPLSDA_Visualizer:
         self._format_ax(ax, xlabel=x_label, ylabel=y_label, title="X-Score Plot")
         self._add_legend(ax, ncol=1, loc='best')
         
-    def plot_permutations(self, perm_results, ax=None):
+    def plot_permutations(
+        self,
+        perm_results: dict[str, Any],
+        ax: Optional[Any] = None,
+    ) -> None:
         """Plots the distribution of R2Y and Q2 from the permutation test."""
         if ax is None: 
             _, ax = plt.subplots(figsize=(4.5, 3))
@@ -491,7 +476,7 @@ class OPLSDA_Visualizer:
             title="Permutation Test")
         self._add_legend(ax, ncol=1, loc='best')
 
-    def plot_splot(self, ax=None):
+    def plot_splot(self, ax: Optional[Any] = None) -> None:
         """Plots the S-Plot (Covariance vs Correlation) highlighting features."""
         if ax is None: 
             _, ax = plt.subplots(figsize=(4.5, 3))
@@ -520,9 +505,12 @@ class OPLSDA_Visualizer:
         self._add_legend(ax, ncol=1, loc='best')
 
 
-    def plot_vip_bar(self, ax=None, wrap_width=30):
-        """Plots a bar plot of the top N features by VIP score.
-        """
+    def plot_vip_bar(
+        self,
+        ax: Optional[Any] = None,
+        wrap_width: int = 30,
+    ) -> None:
+        """Plots a bar plot of the top N features by VIP score."""
         df_feat = self.model.get_features_df(feature_names=self.feature_names)
         top_n = min(self.top_n_vip, len(df_feat))
 
@@ -583,15 +571,8 @@ class OPLSDA_Visualizer:
             ax, handles=legend_elements, title="Correlation", ncol=1, 
             loc='lower right')
 
-    def plot_outlier(self, ax=None):
-        """Plots Score Distance vs Orthogonal Distance with outlier markers.
-        
-        Points exceeding either the SD or OD limits are plotted as 'X' markers
-        to explicitly identify leverage points and orthogonal outliers.
-        
-        Args:
-            ax: Matplotlib axes object. Defaults to None.
-        """
+    def plot_outlier(self, ax: Optional[Any] = None) -> None:
+        """Plot score distance and orthogonal distance diagnostics."""
         from matplotlib.lines import Line2D
         
         if ax is None: 
